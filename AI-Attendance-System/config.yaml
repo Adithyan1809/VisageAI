@@ -1,0 +1,74 @@
+# SYSTEM CONFIGURATION - AI Attendance Pipeline (Optimized for Accuracy + Performance)
+
+# CORE SETTINGS
+tracker: "deepsort"            # Tracking algorithm
+num_detectors: 2               # Number of face detection workers
+num_trackers: 4                # OPTIMIZED: Increased from 1 to 4 for parallel processing
+track_timeout_seconds: 3.0     # Track timeout before sending to recognizer
+
+# CAMERA INGESTION SETTINGS
+# IMPROVED: Higher resolution for better face detection accuracy
+ingest_width: 640              # IMPROVED: 480 → 640 (better face crops for recognition)
+ingest_height: 360             # IMPROVED: 270 → 360 (balanced quality/performance)
+
+# DETECTION SETTINGS
+# These define frame size for face detection.
+detector_width: 640
+detector_height: 360
+
+# ADAPTIVE BACKPRESSURE CONTROL
+# OPTIMIZED: Reduced queue sizes, better backpressure
+detector_queue_high: 200        # OPTIMIZED: 400 → 200 (drop frames earlier, less memory)
+detector_queue_low: 100         # OPTIMIZED: 250 → 100 (more responsive to load)
+throttle_cooldown_seconds: 5.0  # Pause before resuming camera ingestion
+
+# API SETTINGS (SECURITY)
+api_token: "my_secure_token_123"
+api_allowed_origins:
+  - "http://localhost:3000"
+  - "http://127.0.0.1:3000"
+
+# PERFORMANCE TUNING
+# OPTIMIZED: Smaller queues prevent memory waste and reduce latency
+frame_queue_max: 30             # OPTIMIZED: 50 → 30
+detector_queue_max: 200         # OPTIMIZED: 500 → 200
+tracker_output_queue_max: 200   # OPTIMIZED: 500 → 200
+recognition_batch_queue_max: 50 # OPTIMIZED: 100 → 50
+
+# DYNAMIC TRACKER SCALING
+max_trackers: 8                 # Allow up to 8 trackers during peak load
+scale_up_threshold: 150         # OPTIMIZED: 300 → 150 (more responsive)
+scale_down_threshold: 75        # OPTIMIZED: 150 → 75
+
+# API SERVER
+api_port: 8082
+
+# DATABASE SETTINGS (SMAP)
+DB_URL: "postgresql://postgres:root@localhost:5432/SMAP_DB"
+MAX_DB_CONNECTIONS: 10
+
+# RECOGNITION THRESHOLDS - CALIBRATED FOR YUNET + CLAHE + MULTI-TEMPLATE
+# With the new YuNet detector (real confidence scores), CLAHE preprocessing,
+# and multi-template storage, these thresholds are recalibrated:
+#
+# Key improvements:
+# - YuNet provides real confidence (not hardcoded 0.9)
+# - CLAHE normalizes lighting → more consistent embeddings
+# - Multi-template enrollment → better coverage of face variations
+# - Margin check still prevents confusion between similar-looking people
+#
+COSINE_THRESHOLD: 0.78              # SECURED: Increased to 0.78 to stop false positives from family members
+MAJORITY_THRESHOLD: 3               # TUNED: 5 → 3 (with better detection, fewer noise votes needed)
+
+# RECOGNITION BLOCK (Read by pipeline_worker.py) - ANTI-FALSE-POSITIVE
+recognition:
+  cosine_threshold: 0.78            # SECURED: Set to 0.78. Logs show false positives hit 0.73. True positives hit 0.85+.
+  majority_threshold: 3             # Require 3 matching votes (was 5, YuNet is more reliable)
+  margin_threshold: 0.15            # KEEP: Gap between best and runner-up DIFFERENT EMPLOYEE
+                                    # Margin check prevents confusion between similar faces
+
+selector:
+  top_k: 7                          # TUNED: 5 → 7 (more frames for better voting coverage)
+  track_timeout_seconds: 3.0
+  trigger_threshold: 0.5
+  sent_mute_seconds: 10.0

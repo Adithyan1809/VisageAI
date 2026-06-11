@@ -1,0 +1,17 @@
+{
+  "cameras": [
+    {
+      "camera_id": "laptop_webcam",
+      "rtsp_url": "opencv:0",
+      "site_id": "local_laptop",
+      "meta": {
+        "name": "Laptop Built-in Camera",
+        "location": "Laptop",
+        "type": "webcam",
+        "description": "Default laptop integrated webcam"
+      },
+      "fps_skip": 5,
+      "disabled": false
+    }
+  ]
+}

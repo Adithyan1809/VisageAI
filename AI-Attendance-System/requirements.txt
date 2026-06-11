@@ -1,0 +1,22 @@
+aiohttp
+aiohttp-middlewares
+opencv-python
+# Use mediapipe 0.10.33 (latest available)
+mediapipe==0.10.33
+numpy
+scipy
+psycopg2-binary
+redis
+pyyaml
+aioredis
+asyncpg
+requests
+onnxruntime
+Pillow
+scikit-learn
+scikit-image
+numba
+FFmpeg-python
+SQLAlchemy>=1.4.39,<2.0
+filterpy
+coloredlogs
