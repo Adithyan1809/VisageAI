@@ -195,21 +195,7 @@ async def main():
     all_tasks.extend(tracker_tasks)
     logger.info(f"Started {num_trackers} {tracker_type} tracker workers.")
 
-    # --- BEST FRAME SELECTOR INTEGRATION ---
-    selector_config = config.get("selector", {})  # Get the 'selector' block
-
-    selector = BestFrameSelector(
-        top_k=selector_config.get("top_k", 5),
-        track_timeout_seconds=selector_config.get("track_timeout_seconds", 3.0),
-        trigger_threshold=selector_config.get("trigger_threshold", 0.5),
-        sent_mute_seconds=selector_config.get("sent_mute_seconds", 10.0)  # Pass it in
-    )
-    selector_task = asyncio.create_task(
-        selector.run(tracker_output_queue, recognition_batch_queue, stop_event)
-    )
-    all_tasks.append(selector_task)
-
-    # --- Real Recognition Pipeline Worker ---
+    # --- Real Recognition Pipeline Worker (create first to get extractor) ---
     recog_config = config.get("recognition", {})  # Get the 'recognition' block
 
     recognition_pipeline = FaceRecognitionPipeline(
@@ -218,6 +204,22 @@ async def main():
         majority_threshold=recog_config.get("majority_threshold", 5),
         margin_threshold=recog_config.get("margin_threshold", 0.08)
     )
+
+    # --- BEST FRAME SELECTOR INTEGRATION ---
+    selector_config = config.get("selector", {})  # Get the 'selector' block
+
+    selector = BestFrameSelector(
+        top_k=selector_config.get("top_k", 5),
+        track_timeout_seconds=selector_config.get("track_timeout_seconds", 3.0),
+        trigger_threshold=selector_config.get("trigger_threshold", 0.5),
+        sent_mute_seconds=selector_config.get("sent_mute_seconds", 10.0),
+        extractor=None,  # Disabled on CPU — ONNX serializes, threads create contention
+    )
+    selector_task = asyncio.create_task(
+        selector.run(tracker_output_queue, recognition_batch_queue, stop_event)
+    )
+    all_tasks.append(selector_task)
+
     recognition_task = asyncio.create_task(recognition_pipeline.run())
     all_tasks.append(recognition_task)
 

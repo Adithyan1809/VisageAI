@@ -47,28 +47,23 @@ api_port: 8082
 DB_URL: "postgresql://postgres:root@localhost:5432/SMAP_DB"
 MAX_DB_CONNECTIONS: 10
 
-# RECOGNITION THRESHOLDS - CALIBRATED FOR YUNET + CLAHE + MULTI-TEMPLATE
-# With the new YuNet detector (real confidence scores), CLAHE preprocessing,
-# and multi-template storage, these thresholds are recalibrated:
+# RECOGNITION THRESHOLDS — InsightFace buffalo_l (w600k_r50)
+# Discrimination on real faces:
+#   Same person:      0.65 – 1.00 cosine similarity
+#   Different person: 0.005 – 0.07 cosine similarity
+# → Gap of ~0.75+  (vs old model's 0.07 gap — 10× better)
 #
-# Key improvements:
-# - YuNet provides real confidence (not hardcoded 0.9)
-# - CLAHE normalizes lighting → more consistent embeddings
-# - Multi-template enrollment → better coverage of face variations
-# - Margin check still prevents confusion between similar-looking people
-#
-COSINE_THRESHOLD: 0.78              # SECURED: Increased to 0.78 to stop false positives from family members
-MAJORITY_THRESHOLD: 3               # TUNED: 5 → 3 (with better detection, fewer noise votes needed)
+COSINE_THRESHOLD: 0.40
+MAJORITY_THRESHOLD: 1
 
-# RECOGNITION BLOCK (Read by pipeline_worker.py) - ANTI-FALSE-POSITIVE
+# RECOGNITION BLOCK (Read by pipeline_worker.py)
 recognition:
-  cosine_threshold: 0.78            # SECURED: Set to 0.78. Logs show false positives hit 0.73. True positives hit 0.85+.
-  majority_threshold: 3             # Require 3 matching votes (was 5, YuNet is more reliable)
-  margin_threshold: 0.15            # KEEP: Gap between best and runner-up DIFFERENT EMPLOYEE
-                                    # Margin check prevents confusion between similar faces
+  cosine_threshold: 0.55      # Higher threshold for single-frame mode (was 0.40 with voting)
+  majority_threshold: 1       # Single frame = single vote
+  margin_threshold: 0.20      # Gap required between winner and runner-up (different employee)
 
 selector:
-  top_k: 7                          # TUNED: 5 → 7 (more frames for better voting coverage)
-  track_timeout_seconds: 3.0
+  top_k: 1                    # Single best frame per track (1 InsightFace call instead of 3)
+  track_timeout_seconds: 2.0
   trigger_threshold: 0.5
-  sent_mute_seconds: 10.0
+  sent_mute_seconds: 8.0

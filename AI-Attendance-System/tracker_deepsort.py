@@ -302,7 +302,13 @@ async def tracker_worker(detector_queue: asyncio.Queue, tracker_output_queue: as
                     continue
 
                 frame_height, frame_width = frame.shape[:2]
-                detections_np = np.asarray(detections, dtype=np.float32)
+
+                # The face detector returns [x1, y1, x2, y2, conf, face_row]
+                # where face_row is a 15-element numpy array (YuNet landmarks).
+                # The tracker only needs [x1, y1, x2, y2, conf], so strip each
+                # detection to its first 5 scalar elements before conversion.
+                detections_stripped = [d[:5] for d in detections] if detections else []
+                detections_np = np.asarray(detections_stripped, dtype=np.float32).reshape(-1, 5)
 
                 # Get or create tracker state and update last seen time
                 tracker_state = trackers[camera_id]

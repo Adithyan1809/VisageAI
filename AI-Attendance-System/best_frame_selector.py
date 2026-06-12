@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List
 
 import cv2
@@ -30,7 +31,7 @@ class BestFrameSelector:
     MIN_CROP_SIZE = 60       # Minimum face crop width/height in pixels
     MIN_BLUR_THRESHOLD = 30.0  # Minimum Laplacian variance (sharpness)
 
-    def __init__(self, top_k=7, track_timeout_seconds=3.0, trigger_threshold=0.5, sent_mute_seconds=10.0):
+    def __init__(self, top_k=7, track_timeout_seconds=3.0, trigger_threshold=0.5, sent_mute_seconds=10.0, extractor=None):
         self.top_k = top_k
         self.track_timeout = track_timeout_seconds
         self.trigger_threshold = trigger_threshold
@@ -47,6 +48,48 @@ class BestFrameSelector:
         # Task Management
         self._flush_queue = asyncio.Queue()
         self._flush_task: asyncio.Task | None = None
+
+        # Eager embedding: pre-compute embeddings in background threads
+        self._extractor = extractor
+        self._thread_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="emb")
+        # Track pending embedding futures per track_id
+        self._pending_embeddings: Dict[int, List[Any]] = {}
+
+    def _compute_embedding_sync(self, full_frame, bbox):
+        """
+        Compute embedding synchronously (called in thread pool).
+        Uses bbox-padded crop for person-targeted extraction.
+        """
+        if self._extractor is None or full_frame is None or bbox is None:
+            return None
+        try:
+            ih, iw = full_frame.shape[:2]
+            x1, y1, x2, y2 = [int(v) for v in bbox]
+            bw, bh = x2 - x1, y2 - y1
+            px, py = int(bw * 1.0), int(bh * 1.0)
+            cx1 = max(0, x1 - px)
+            cy1 = max(0, y1 - py)
+            cx2 = min(iw, x2 + px)
+            cy2 = min(ih, y2 + py)
+            padded_crop = full_frame[cy1:cy2, cx1:cx2]
+            if padded_crop.size > 0:
+                return self._extractor.extract_embedding(padded_crop)
+        except Exception as e:
+            logger.debug(f"Eager embedding failed: {e}")
+        return None
+
+    async def _resolve_pending_embeddings(self, track_id: int, frames_data: list):
+        """Resolve any pending embedding futures and attach results to frame data."""
+        pending = self._pending_embeddings.pop(track_id, [])
+        loop = asyncio.get_event_loop()
+        for frame_dict, future in pending:
+            try:
+                # Wait for the thread to finish (should be done or near-done)
+                emb = await loop.run_in_executor(None, future.result, 0.5)
+                if emb is not None:
+                    frame_dict["embedding"] = emb
+            except Exception:
+                pass  # Embedding will be computed by recognizer as fallback
 
     # ---------------------------------------------------
     # Helper Methods - Optimized Computational Functions
@@ -89,20 +132,27 @@ class BestFrameSelector:
         if not track_frames_data:
             return None
 
-        frames = [
-            f["frame"]
+        frame_entries = [
+            {
+                "frame": f["frame"],
+                "full_frame": f.get("full_frame"),
+                "face_row": f.get("face_row"),
+                "bbox": f.get("bbox"),
+                "embedding": f.get("embedding"),  # pre-computed by eager threads
+            }
             for f in track_frames_data
             if f["frame"] is not None and f["frame"].size > 0
         ]
 
-        if not frames:
+        if not frame_entries:
             return None
 
         return {
             "camera_id": camera_id,
+            "queued_at": time.time(),  # timestamp for staleness check
             "tracks": [{
                 "track_id": track_id,
-                "frames": frames
+                "frames": frame_entries
             }]
         }
 
@@ -228,18 +278,35 @@ class BestFrameSelector:
             if len(self.best_frames[track_id]) >= self.top_k:
                 return
 
-            self.best_frames[track_id].append({
+            # face_row: raw YuNet detection row (15-element array with landmarks)
+            # stored so the recognizer can do landmark-based alignment (key fix for FP)
+            face_row = tracker_data.get("face_row", None)
+
+            frame_dict = {
                 "score": score,
                 "camera_id": camera_id,
                 "track_id": track_id,
                 "timestamp": timestamp,
-                "frame": cropped
-            })
+                "frame": cropped,
+                "full_frame": frame,     # full decoded frame for landmark alignment
+                "face_row": face_row,    # YuNet landmark row for alignment
+                "bbox": bbox,            # tracker bbox [x1,y1,x2,y2] for targeted crop
+            }
+            self.best_frames[track_id].append(frame_dict)
+
+            # EAGER EMBEDDING: submit to thread pool immediately
+            if self._extractor is not None:
+                future = self._thread_pool.submit(
+                    self._compute_embedding_sync, frame, bbox
+                )
+                if track_id not in self._pending_embeddings:
+                    self._pending_embeddings[track_id] = []
+                self._pending_embeddings[track_id].append((frame_dict, future))
 
             self.best_frames[track_id].sort(key=lambda x: x["score"], reverse=True)
             self.best_frames[track_id] = self.best_frames[track_id][:self.top_k]
 
-            # --- 3. IMMEDIATE DISPATCH CHECK (THE FIX) ---
+            # --- 3. IMMEDIATE DISPATCH CHECK ---
             if len(self.best_frames[track_id]) == self.top_k:
                 logger.info(
                     f"[Track {track_id}] Collected {self.top_k} best frames — queuing immediately for recognition.")
@@ -247,8 +314,10 @@ class BestFrameSelector:
                 # Prepare data for flushing
                 frames_data = self.best_frames.pop(track_id)
 
+                # Resolve pending embeddings before dispatch
+                await self._resolve_pending_embeddings(track_id, frames_data)
+
                 # Mute this track instead of forgetting it
-                # Add to sent_tracks to mute it for self.sent_mute_seconds
                 self.sent_tracks[track_id] = timestamp
 
                 await self._flush_queue.put((track_id, camera_id, frames_data, "immediate_send"))
@@ -300,6 +369,8 @@ class BestFrameSelector:
                         self.sent_tracks.pop(tid, None)  # Also clear any mute state
 
                         if frames_data:
+                            # Resolve any pending eager embeddings
+                            await self._resolve_pending_embeddings(tid, frames_data)
                             camera_id = frames_data[0]["camera_id"]
                             logger.info(
                                 f"[BestFrameSelector] Track {tid} timed out. Queuing {len(frames_data)} frames for recognition.")

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections import Counter
 from dataclasses import dataclass, field
@@ -65,39 +66,118 @@ class CoreRecognizer:
         self.cosine_threshold = cosine_threshold
         self.margin_threshold = margin_threshold
 
-    async def _get_frame_matches(self, frames: List[np.ndarray], db) -> Tuple[List[tuple], List[np.ndarray], List[str]]:
+    def _extract_single_embedding(self, frame_entry, idx: int):
         """
-        OPTIMIZED: Extract embeddings in batch, then query DB.
-        
-        Private helper to extract embeddings and get DB matches for all frames.
-        Now performs batch embedding extraction instead of per-frame processing.
+        Extract embedding for a single frame (runs in thread pool).
+        Returns (embedding, error_string_or_None).
         """
-        frame_matches = []  # Stores (empid, similarity, embedding_index, name)
+        try:
+            if isinstance(frame_entry, dict):
+                # Fast path: pre-computed embedding from BestFrameSelector
+                pre_emb = frame_entry.get("embedding")
+                if pre_emb is not None:
+                    return pre_emb, None
+
+                crop = frame_entry.get("frame")
+                full_frame = frame_entry.get("full_frame")
+                face_row = frame_entry.get("face_row")
+                bbox = frame_entry.get("bbox")
+            else:
+                crop = frame_entry
+                full_frame = None
+                face_row = None
+                bbox = None
+
+            emb = None
+
+            # Strategy 1 (FASTEST + MOST RELIABLE): bbox-padded crop
+            if emb is None and full_frame is not None and bbox is not None:
+                try:
+                    ih, iw = full_frame.shape[:2]
+                    x1, y1, x2, y2 = [int(v) for v in bbox]
+                    bw, bh = x2 - x1, y2 - y1
+                    px, py = int(bw * 1.0), int(bh * 1.0)
+                    cx1 = max(0, x1 - px)
+                    cy1 = max(0, y1 - py)
+                    cx2 = min(iw, x2 + px)
+                    cy2 = min(ih, y2 + py)
+                    padded_crop = full_frame[cy1:cy2, cx1:cx2]
+                    if padded_crop.size > 0:
+                        emb = self.extractor.extract_embedding(padded_crop)
+                except Exception as bbox_err:
+                    logger.debug(f"Bbox-padded crop failed @frame_idx={idx}: {bbox_err}")
+
+            # Strategy 2: aligned embedding via YuNet landmarks
+            if (emb is None and full_frame is not None and face_row is not None
+                    and hasattr(self.extractor, "extract_embedding_aligned")):
+                try:
+                    emb = self.extractor.extract_embedding_aligned(full_frame, face_row)
+                except Exception as align_err:
+                    logger.debug(f"Aligned embedding failed @frame_idx={idx}: {align_err}")
+
+            # Strategy 3 (LAST RESORT): plain tight crop
+            if emb is None and crop is not None:
+                emb = self.extractor.extract_embedding(crop)
+
+            if emb is None:
+                return None, f"Embedding failed @frame_idx={idx}"
+            return emb, None
+
+        except Exception as e:
+            return None, f"Embedding error @frame_idx={idx}: {str(e)}"
+
+    async def _get_frame_matches(self, frames: List, db) -> Tuple[List[tuple], List[np.ndarray], List[str]]:
+        """
+        OPTIMIZED: Parallel embedding extraction + pre-computed embedding support.
+
+        - If a frame has a pre-computed 'embedding' key, uses it instantly (no inference).
+        - Otherwise, extracts embeddings in PARALLEL using asyncio.gather + to_thread.
+        - Then batch-queries the DB for matches.
+        """
+        frame_matches = []
         embeddings = []
         errors = []
 
-        # OPTIMIZED: Batch extract all embeddings first (reduces overhead)
         try:
-            # Extract embeddings for all frames in one pass
-            for idx, frame in enumerate(frames):
-                try:
-                    emb = self.extractor.extract_embedding(frame)
-                    if emb is None:
-                        errors.append(f"Embedding failed @frame_idx={idx}")
-                    else:
+            # Check if any frames have pre-computed embeddings (fast path)
+            has_precomputed = any(
+                isinstance(f, dict) and f.get("embedding") is not None
+                for f in frames
+            )
+
+            if has_precomputed:
+                # Fast path: extract synchronously (pre-computed = instant)
+                for idx, frame_entry in enumerate(frames):
+                    emb, err = self._extract_single_embedding(frame_entry, idx)
+                    if err:
+                        errors.append(err)
+                    if emb is not None:
                         embeddings.append(emb)
-                except Exception as e:
-                    errors.append(f"Embedding error @frame_idx={idx}: {str(e)}")
+            else:
+                # Parallel path: run all extractions concurrently in thread pool
+                tasks = [
+                    asyncio.to_thread(self._extract_single_embedding, frame_entry, idx)
+                    for idx, frame_entry in enumerate(frames)
+                ]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                for result in results:
+                    if isinstance(result, Exception):
+                        errors.append(f"Thread error: {str(result)}")
+                    else:
+                        emb, err = result
+                        if err:
+                            errors.append(err)
+                        if emb is not None:
+                            embeddings.append(emb)
 
             if not embeddings:
                 return frame_matches, embeddings, errors
 
-            # OPTIMIZED: Batch query DB for all embeddings instead of N+1 queries
-            # This assumes db.query_best_matches_batch() exists; fall back to sequential if not
+            # OPTIMIZED: Batch query DB for all embeddings
             emb_strs = [embedding_to_pgvector_str(emb) for emb in embeddings]
-            
+
             try:
-                # Try batch query if available
                 if hasattr(db, 'query_best_matches_batch'):
                     matches_list = await db.query_best_matches_batch(emb_strs)
                     for emb_idx, match in enumerate(matches_list):
@@ -108,7 +188,6 @@ class CoreRecognizer:
                         else:
                             frame_matches.append(("unknown", 0.0, emb_idx, None))
                 else:
-                    # Fallback: sequential queries if batch method not available
                     for emb_idx, emb_str in enumerate(emb_strs):
                         match = await db.query_best_match_unfiltered(emb_str)
                         if match:
@@ -120,7 +199,6 @@ class CoreRecognizer:
             except Exception as e:
                 errors.append(f"DB query error: {str(e)}")
                 logger.warning(f"Batch DB query failed, falling back to sequential: {e}")
-                # Fallback to sequential if batch fails
                 for emb_idx, emb_str in enumerate(emb_strs):
                     try:
                         match = await db.query_best_match_unfiltered(emb_str)

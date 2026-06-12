@@ -95,144 +95,179 @@ MIN_BLUR_SCORE = 30.0        # Minimum sharpness for enrollment (lower than batc
 MIN_DETECTION_CONFIDENCE = 0.5  # Minimum face detection confidence
 
 
-# -------------------------
-# Face Detector for Enrollment
-# -------------------------
+# ─────────────────────────────────────────────────────────────────────────────
+# Face Detector for Enrollment — InsightFace buffalo_l backend
+# No model path needed; InsightFace manages its own model cache (~/.insightface)
+# ─────────────────────────────────────────────────────────────────────────────
 class EnrollmentFaceDetector:
-    """YuNet-based face detector for the enrollment API."""
+    """
+    InsightFace-backed face detector for the enrollment API.
+
+    Replaces the YuNet detector which had fragile path resolution.
+    InsightFace's det_10g (RetinaFace) gives superior accuracy with zero
+    manual model file management.
+    """
 
     def __init__(self):
-        self._detector = None
-        self._clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-
-        if YUNET_MODEL_PATH and Path(YUNET_MODEL_PATH).exists():
-            try:
-                self._detector = cv2.FaceDetectorYN.create(
-                    model=str(YUNET_MODEL_PATH),
-                    config="",
-                    input_size=(320, 320),
-                    score_threshold=MIN_DETECTION_CONFIDENCE,
-                    nms_threshold=0.3,
-                    top_k=10
-                )
-                logger.info(f"✅ YuNet face detector loaded for enrollment")
-            except Exception as e:
-                logger.warning(f"⚠️ Could not load YuNet: {e}. Will use full-image fallback.")
-        else:
-            logger.warning(f"⚠️ YuNet model not found. Will use full-image fallback (less accurate).")
-
-    def detect_and_crop(self, image: np.ndarray) -> list:
-        """
-        Detect faces in an image and return cropped face regions.
-        
-        Returns:
-            List of dicts: [{"crop": np.ndarray, "confidence": float, "blur_score": float}, ...]
-        """
-        if self._detector is None:
-            # Fallback: use the entire image (less accurate but still works)
-            return [{"crop": image, "confidence": 0.5, "blur_score": self._calculate_blur(image)}]
-
-        h, w = image.shape[:2]
-        self._detector.setInputSize((w, h))
-
-        _, faces = self._detector.detect(image)
-
-        if faces is None or len(faces) == 0:
-            # No face detected — try the whole image as a last resort
-            logger.debug("No face detected, trying full image")
-            return [{"crop": image, "confidence": 0.3, "blur_score": self._calculate_blur(image)}]
-
-        results = []
-        for face in faces:
-            x, y, fw, fh = int(face[0]), int(face[1]), int(face[2]), int(face[3])
-            confidence = float(face[-1])
-
-            # Skip tiny faces
-            if fw < MIN_FACE_SIZE or fh < MIN_FACE_SIZE:
-                continue
-
-            # Add margin around face for better embedding
-            margin_x = int(fw * 0.15)
-            margin_y = int(fh * 0.15)
-            x1 = max(0, x - margin_x)
-            y1 = max(0, y - margin_y)
-            x2 = min(w, x + fw + margin_x)
-            y2 = min(h, y + fh + margin_y)
-
-            crop = image[y1:y2, x1:x2]
-            if crop.size == 0:
-                continue
-
-            blur_score = self._calculate_blur(crop)
-            results.append({
-                "crop": crop,
-                "confidence": confidence,
-                "blur_score": blur_score
-            })
-
-        if not results:
-            # All faces were too small — try the full image
-            return [{"crop": image, "confidence": 0.3, "blur_score": self._calculate_blur(image)}]
-
-        # Sort by confidence (best first)
-        results.sort(key=lambda r: r["confidence"], reverse=True)
-        return results
+        self._app = _get_insight_app_enrollment()
 
     def _calculate_blur(self, image: np.ndarray) -> float:
-        """Calculate sharpness using Laplacian variance."""
         try:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            return cv2.Laplacian(gray, cv2.CV_64F).var()
+            return float(cv2.Laplacian(gray, cv2.CV_64F).var())
         except Exception:
             return 0.0
 
+    def detect_and_crop(self, image: np.ndarray) -> list:
+        """
+        Detect faces and return cropped regions with metadata.
 
-# -------------------------
-# ArcFace Extractor (embedded) — with CLAHE
-# -------------------------
-class ArcFaceExtractor:
-    def __init__(self, model_path=ARCFACE_MODEL_PATH):
-        self.model_path = str(model_path)
-        self.input_size = INPUT_SIZE
-        self.embedding_dim = EMBEDDING_DIM
-        self._clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        Returns:
+            List of dicts: {crop, full_image, face_row, confidence, blur_score}
+        """
+        if image is None or image.size == 0:
+            return []
+
         try:
-            self.session = ort.InferenceSession(self.model_path, providers=['CPUExecutionProvider'])
-            self.input_name = self.session.get_inputs()[0].name
-            logger.info(f"✔ ArcFace model loaded. Input: '{self.input_name}'")
+            faces = self._app.get(image)
         except Exception as e:
-            logger.error(f"❌ Failed to load ArcFace model: {e}")
-            raise
+            logger.warning(f"InsightFace detection failed: {e}")
+            return [{"crop": image, "full_image": image, "face_row": None,
+                     "confidence": 0.3, "blur_score": self._calculate_blur(image)}]
 
-    def preprocess_face(self, frame):
-        img = cv2.resize(frame, self.input_size)
+        if not faces:
+            return [{"crop": image, "full_image": image, "face_row": None,
+                     "confidence": 0.3, "blur_score": self._calculate_blur(image)}]
 
-        # Apply CLAHE for lighting normalization
+        results = []
+        h, w = image.shape[:2]
+        for face in faces:
+            x1, y1, x2, y2 = [int(v) for v in face.bbox]
+            x1, y1 = max(0, x1), max(0, y1)
+            x2, y2 = min(w, x2), min(h, y2)
+            if x2 <= x1 or y2 <= y1:
+                continue
+
+            fw, fh = x2 - x1, y2 - y1
+            if fw < MIN_FACE_SIZE or fh < MIN_FACE_SIZE:
+                continue
+
+            # 15% margin for better embedding context
+            mx, my = int(fw * 0.15), int(fh * 0.15)
+            cx1, cy1 = max(0, x1 - mx), max(0, y1 - my)
+            cx2, cy2 = min(w, x2 + mx), min(h, y2 + my)
+            crop = image[cy1:cy2, cx1:cx2]
+            if crop.size == 0:
+                continue
+
+            confidence = float(face.det_score) if hasattr(face, "det_score") else 0.9
+            results.append({
+                "crop": crop,
+                "full_image": image,
+                "face_row": None,   # InsightFace handles alignment internally
+                "confidence": confidence,
+                "blur_score": self._calculate_blur(crop),
+            })
+
+        if not results:
+            return [{"crop": image, "full_image": image, "face_row": None,
+                     "confidence": 0.3, "blur_score": self._calculate_blur(image)}]
+
+        results.sort(key=lambda r: r["confidence"], reverse=True)
+        return results
+
+    def get_bboxes(self, image: np.ndarray) -> list:
+        """Return raw bounding boxes [{x,y,width,height,confidence}] for the UI overlay."""
         try:
-            lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-            l_channel, a_channel, b_channel = cv2.split(lab)
-            l_channel = self._clahe.apply(l_channel)
-            lab = cv2.merge([l_channel, a_channel, b_channel])
-            img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
-        except Exception:
-            pass
+            faces = self._app.get(image)
+            boxes = []
+            for face in faces:
+                x1, y1, x2, y2 = [int(v) for v in face.bbox]
+                confidence = float(face.det_score) if hasattr(face, "det_score") else 0.9
+                if confidence >= MIN_DETECTION_CONFIDENCE:
+                    boxes.append({"x": x1, "y": y1,
+                                  "width": x2 - x1, "height": y2 - y1,
+                                  "confidence": confidence})
+            return boxes
+        except Exception as e:
+            logger.debug(f"get_bboxes failed: {e}")
+            return []
 
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        # BUGFIX: This specific model expects raw [0, 255] float32 pixels. 
-        # Scaling to [-1, 1] was blinding the model and causing 0.97+ false positives for everyone.
-        img = img.astype(np.float32)
-        return np.expand_dims(img, axis=0)  # (1,112,112,3)
 
-    def extract_embedding(self, frame):
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ArcFace Extractor — InsightFace buffalo_l (w600k_r50) backend
+# ──────────────────────────────────────────────────────────────────────────────
+_insight_app_enrollment = None
+
+
+def _get_insight_app_enrollment():
+    """Lazy-load InsightFace buffalo_l for enrollment (singleton)."""
+    global _insight_app_enrollment
+    if _insight_app_enrollment is None:
+        from insightface.app import FaceAnalysis
+        _insight_app_enrollment = FaceAnalysis(
+            name="buffalo_l",
+            providers=["CPUExecutionProvider"]
+        )
+        _insight_app_enrollment.prepare(ctx_id=0, det_size=(640, 640))
+        logger.info("✅ InsightFace buffalo_l loaded for enrollment (w600k_r50)")
+    return _insight_app_enrollment
+
+
+class ArcFaceExtractor:
+    """
+    Enrollment embedding extractor backed by InsightFace buffalo_l.
+
+    Replaces the broken arcface_r100.onnx + manual preprocessing pipeline.
+    InsightFace handles detection, 5-pt alignment, and L2-normed embedding.
+
+    Discrimination: same-person ~0.65-1.0  |  different-person ~0.005-0.07
+    """
+
+    def __init__(self, model_path=None):
+        self._app = _get_insight_app_enrollment()
+        self.embedding_dim = 512
+
+    def extract_embedding(self, frame: np.ndarray, face_row=None) -> np.ndarray | None:
+        """
+        Extract 512-d L2-normalised embedding from a face image.
+
+        Args:
+            frame:    BGR face crop (any size). InsightFace handles alignment internally.
+            face_row: Ignored — InsightFace detects landmarks itself.
+
+        Returns:
+            512-d normalised numpy embedding, or None if no face found.
+        """
         if frame is None or frame.size == 0:
             return None
-        input_blob = self.preprocess_face(frame)
-        emb = self.session.run(None, {self.input_name: input_blob})[0]
-        emb = emb.reshape((self.embedding_dim,))
-        norm = np.linalg.norm(emb)
-        if norm == 0:
+
+        h, w = frame.shape[:2]
+        if h < 20 or w < 20:
             return None
-        return emb / norm
+
+        try:
+            faces = self._app.get(frame)
+
+            if not faces:
+                # Try with a small padding to help with tight crops
+                pad = max(int(h * 0.15), int(w * 0.15), 10)
+                padded = cv2.copyMakeBorder(frame, pad, pad, pad, pad,
+                                             cv2.BORDER_REPLICATE)
+                faces = self._app.get(padded)
+                if not faces:
+                    logger.debug("InsightFace: no face detected in crop or padded version")
+                    return None
+
+            # Use the largest detected face
+            face = max(faces, key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]))
+            return face.normed_embedding.astype(np.float32)
+
+        except Exception as e:
+            logger.debug(f"InsightFace embedding failed: {e}")
+            return None
+
 
 # -------------------------
 # DB FUNCTIONS
@@ -370,6 +405,8 @@ async def enroll_face(
                     # Use the best (highest confidence) face
                     best_face = face_results[0]
                     face_crop = best_face["crop"]
+                    full_image = best_face.get("full_image", image)
+                    face_row = best_face.get("face_row", None)
                     confidence = best_face["confidence"]
                     blur_score = best_face["blur_score"]
                     
@@ -378,7 +415,8 @@ async def enroll_face(
                         logger.warning(f"⚠️ Face too blurry in {Path(img_path).name} (blur={blur_score:.1f})")
                         continue
                     
-                    embedding = extractor.extract_embedding(face_crop)
+                    # Use landmark-aligned embedding when face_row is available
+                    embedding = extractor.extract_embedding(full_image if face_row is not None else face_crop, face_row)
                     if embedding is not None:
                         embeddings.append(embedding)
                         quality_scores.append(confidence * min(blur_score / 500.0, 1.0))
@@ -514,6 +552,8 @@ async def enroll_from_camera(
                     
                     best_face = face_results[0]
                     face_crop = best_face["crop"]
+                    full_image = best_face.get("full_image", image)
+                    face_row = best_face.get("face_row", None)
                     confidence = best_face["confidence"]
                     blur_score = best_face["blur_score"]
                     
@@ -521,7 +561,8 @@ async def enroll_from_camera(
                     if blur_score < MIN_BLUR_SCORE * 0.5:
                         continue
                     
-                    embedding = extractor.extract_embedding(face_crop)
+                    # Use landmark-aligned embedding when face_row is available
+                    embedding = extractor.extract_embedding(full_image if face_row is not None else face_crop, face_row)
                     if embedding is not None:
                         embeddings.append(embedding)
                         quality_scores.append(confidence * min(blur_score / 500.0, 1.0))
@@ -587,8 +628,9 @@ async def enroll_from_camera(
 @router.post("/detect")
 async def detect_face_realtime(file: UploadFile = File(...)):
     """
-    Ultra-fast endpoint to detect face bounding box for UI guidance.
-    Returns: {"faces": [{"x": ..., "y": ..., "width": ..., "height": ..., "confidence": ...}]}
+    Real-time face detection endpoint for UI guidance overlay.
+    Returns: {"faces": [{"x", "y", "width", "height", "confidence"}, ...]}
+    Powered by InsightFace buffalo_l det_10g (RetinaFace).
     """
     try:
         contents = await file.read()
@@ -596,36 +638,11 @@ async def detect_face_realtime(file: UploadFile = File(...)):
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if image is None:
             return {"faces": []}
-            
+
         detector = EnrollmentFaceDetector()
-        results = detector.detect_and_crop(image)
-        
-        if not results:
-            return {"faces": []}
-            
-        # Return the best face bounding box (we have to recalculate the box from crop logic)
-        # Actually, detect_and_crop returns the crop, but we need the raw coordinates.
-        # Let's bypass detect_and_crop and just use the internal YuNet detector to get the raw box.
-        if detector._detector is None:
-            return {"faces": []}
-            
-        h, w = image.shape[:2]
-        detector._detector.setInputSize((w, h))
-        _, faces = detector._detector.detect(image)
-        
-        if faces is None or len(faces) == 0:
-            return {"faces": []}
-            
-        response_faces = []
-        for face in faces:
-            x, y, fw, fh = int(face[0]), int(face[1]), int(face[2]), int(face[3])
-            confidence = float(face[-1])
-            if confidence > MIN_DETECTION_CONFIDENCE:
-                response_faces.append({
-                    "x": x, "y": y, "width": fw, "height": fh, "confidence": confidence
-                })
-                
-        return {"faces": response_faces}
+        boxes = detector.get_bboxes(image)
+        return {"faces": boxes}
+
     except Exception as e:
         logger.error(f"Detection error: {e}")
         return {"faces": []}
@@ -633,20 +650,18 @@ async def detect_face_realtime(file: UploadFile = File(...)):
 
 @router.get("/status")
 async def enrollment_status():
-    """Check if face enrollment service is available"""
+    """Check if face enrollment service is available."""
     try:
-        extractor = ArcFaceExtractor()
-        detector_status = "ready" if YUNET_MODEL_PATH and Path(YUNET_MODEL_PATH).exists() else "fallback (no YuNet model)"
-        
+        _get_insight_app_enrollment()  # will raise if model unavailable
         return {
             "status": "ready",
             "message": "Face enrollment service is available",
-            "model_path": str(ARCFACE_MODEL_PATH),
-            "face_detector": detector_status,
-            "yunet_model_path": str(YUNET_MODEL_PATH) if YUNET_MODEL_PATH else None
+            "face_detector": "InsightFace buffalo_l (det_10g)",
+            "embedding_model": "InsightFace buffalo_l (w600k_r50 ArcFace)",
         }
     except Exception as e:
         return {
             "status": "error",
             "message": f"Face enrollment service unavailable: {str(e)}"
         }
+

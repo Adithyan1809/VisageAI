@@ -116,15 +116,18 @@ class FaceDetector:
 
     def detect_faces(self, frame_data: Union[np.ndarray, bytes]) -> List[List[float]]:
         """
-        Detect faces in a frame and return list of [x1, y1, x2, y2, confidence].
-        
-        Also provides facial landmarks via detect_faces_with_landmarks() if needed.
-        
+        Detect faces in a frame and return list of [x1, y1, x2, y2, confidence, face_row].
+
+        face_row is the raw 15-element YuNet output array containing both the
+        bounding box AND the 5 landmark coordinates. It is passed downstream so
+        the ArcFace extractor can perform landmark-based face alignment, which
+        dramatically reduces false positives.
+
         Args:
             frame_data: BGR image as numpy array or JPEG bytes
-            
+
         Returns:
-            List of detections, each as [x1, y1, x2, y2, confidence]
+            List of detections, each as [x1, y1, x2, y2, confidence, face_row]
         """
         frame = decode_frame(frame_data)
         frame = validate_frame(frame)
@@ -162,7 +165,8 @@ class FaceDetector:
             if x2 <= x1 or y2 <= y1:
                 continue
 
-            detections.append([x1, y1, x2, y2, confidence])
+            # Pass the full YuNet face row so downstream code can do landmark alignment
+            detections.append([x1, y1, x2, y2, confidence, face])
 
         return detections
 

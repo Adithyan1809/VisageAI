@@ -97,11 +97,11 @@ d = FaceDetector()
 print('  \033[0;32m✅ YuNet FaceDetector initialized\033[0m')
 " 2>&1
 
-    echo -e "${BLUE}[5/5] Checking ArcFace extractor...${NC}"
+    echo -e "${BLUE}[5/5] Checking InsightFace extractor...${NC}"
     python3 -c "
 from embedding_utils import get_extractor
 e = get_extractor()
-print('  \033[0;32m✅ ArcFace extractor loaded (with CLAHE)\033[0m')
+print('  \033[0;32m✅ InsightFace buffalo_l loaded (w600k_r50 ArcFace)\033[0m')
 " 2>&1
 
     echo ""

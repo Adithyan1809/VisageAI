@@ -236,6 +236,7 @@ class FaceRecognitionPipeline:
 
     async def run(self):
         """Main event loop for processing recognition requests."""
+        STALE_THRESHOLD = 5.0  # Skip batches older than 5 seconds
         logger.info("Face Recognition Pipeline running...")
         while True:
             try:
@@ -243,6 +244,35 @@ class FaceRecognitionPipeline:
                 if data is None:
                     logger.info("Received shutdown signal.")
                     break
+
+                # STALENESS CHECK: skip old batches to prevent backlog tail
+                queued_at = data.get("queued_at", 0)
+                age = time.time() - queued_at if queued_at else 0
+                if queued_at and age > STALE_THRESHOLD:
+                    logger.debug(f"Skipping stale batch (age={age:.1f}s)")
+                    self.queue.task_done()
+                    # Drain any other stale batches from the queue
+                    drained = 0
+                    while not self.queue.empty():
+                        try:
+                            peek = self.queue.get_nowait()
+                            if peek is None:
+                                self.queue.task_done()
+                                break
+                            peek_age = time.time() - peek.get("queued_at", 0) if peek.get("queued_at") else 0
+                            if peek.get("queued_at") and peek_age > STALE_THRESHOLD:
+                                drained += 1
+                                self.queue.task_done()
+                            else:
+                                # Fresh batch — put it back and process it
+                                await self.queue.put(peek)
+                                self.queue.task_done()
+                                break
+                        except asyncio.QueueEmpty:
+                            break
+                    if drained:
+                        logger.info(f"Drained {drained} stale batches from queue")
+                    continue
 
                 camera_id = data.get("camera_id")
                 tracks = data.get("tracks", [])
