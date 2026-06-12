@@ -12,6 +12,12 @@
 
 set -e
 
+# Load NVM to ensure the correct Node.js version is used, especially if started via GUI/cron
+export NVM_DIR="$HOME/.nvm"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    \. "$NVM_DIR/nvm.sh"
+fi
+
 # Propagate active Node.js version to background subshells (fixes system node/NVM mismatches)
 if command -v node &>/dev/null; then
     NODE_BIN_DIR="$(dirname "$(which node)")"
