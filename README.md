@@ -8,10 +8,11 @@
 [![Next.js](https://img.shields.io/badge/Next.js-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![InsightFace](https://img.shields.io/badge/AI-InsightFace-FF6F00.svg)]()
+[![JWT Auth](https://img.shields.io/badge/Auth-JWT-orange.svg)]()
 
 *Blazing-fast, edge-optimized face recognition built for scale. Achieve sub-second identity verification entirely on CPU.*
 
-[Features](#-key-features) • [Architecture](#-system-architecture) • [Tech Stack](#%EF%B8%8F-tech-stack) • [Getting Started](#-getting-started) • [Performance](#-performance-benchmarks)
+[Features](#-key-features) • [Architecture](#-system-architecture) • [Tech Stack](#%EF%B8%8F-tech-stack) • [Auth System](#-authentication-system) • [Getting Started](#-getting-started) • [Performance](#-performance-benchmarks)
 
 </div>
 
@@ -21,8 +22,7 @@
 
 **VisageAI** is a state-of-the-art attendance and identity verification system designed to run efficiently on edge devices and commodity hardware. By combining lightweight detection models with heavy-duty embedding extractors and vector databases, VisageAI delivers real-time performance without requiring expensive GPUs.
 
-<!-- Add a nice screenshot or GIF here when you have one! -->
-<!-- ![VisageAI Dashboard](docs/assets/dashboard-preview.png) -->
+The admin dashboard is protected by an **industry-grade JWT authentication system** — the same pattern used by companies like Stripe, AWS, and GitHub.
 
 ## ✨ Key Features
 
@@ -31,6 +31,7 @@
 - 🧠 **Smart Tracking**: Integrates DeepSORT to maintain identity continuity across frames, preventing redundant API calls and processing.
 - 💾 **Lightning Vector Search**: Powered by PostgreSQL and `pgvector` for scalable, high-speed similarity lookups against thousands of enrolled faces.
 - 📱 **Modern Dashboard**: A sleek, responsive Next.js frontend for real-time monitoring, live camera feeds, and seamless employee enrollment.
+- 🔐 **Enterprise Auth**: Full JWT + Refresh Token authentication with bcrypt, account lockout, token rotation, and httpOnly cookies.
 
 ## 🏗️ System Architecture
 
@@ -63,6 +64,81 @@ graph TD
 4. **Embed**: InsightFace (`buffalo_l`) generates a highly discriminative 512D vector from a padded, bounding-box-targeted crop.
 5. **Match**: `pgvector` calculates cosine distance against the enrollment database to confirm identity.
 
+## 🔐 Authentication System
+
+VisageAI uses a **production-grade, stateless JWT authentication** system — the same dual-token pattern used in enterprise software.
+
+### How It Works
+
+```
+[Browser] → POST /api/auth/login (username + password)
+              ← { access_token (15 min JWT) } + Set-Cookie: refresh_token (httpOnly, 7d)
+
+[Browser] → GET /api/* with Authorization: Bearer <access_token>
+              ← 200 OK
+
+[Browser] → POST /api/auth/refresh (cookie sent automatically)
+              ← { new access_token }   [Refresh Token Rotation]
+
+[Browser] → POST /api/auth/logout
+              → refresh token revoked in DB, cookie cleared
+```
+
+### Token Strategy
+
+| Token | Lifetime | Storage | Security |
+|---|---|---|---|
+| Access Token (JWT) | 15 minutes | React state (memory only) | Never touches disk — XSS-safe |
+| Refresh Token | 7 days (30 if "remember me") | `httpOnly` cookie | JS cannot read it — XSS + CSRF-safe |
+
+### Security Features
+
+| Feature | Implementation |
+|---|---|
+| Password hashing | bcrypt cost=12 |
+| Token storage | Access token in memory only |
+| Refresh token rotation | New token on every refresh; old one revoked in DB |
+| Token reuse detection | Replayed revoked token → all sessions revoked immediately |
+| Account lockout | 5 failed logins → 15-minute lockout (tracked in PostgreSQL) |
+| httpOnly cookie | Refresh token inaccessible to JavaScript |
+| Audit log | IP address + User-Agent stored with every refresh token |
+| Token revocation | SHA-256 hash of token stored in DB (never raw token) |
+
+### Admin Roles
+
+| Role | Access |
+|---|---|
+| `SUPER_ADMIN` | Full access, can manage other admins |
+| `ADMIN` | Full operational access |
+| `VIEWER` | Read-only access |
+
+### Creating Admin Accounts
+
+```bash
+cd backend
+./venv/bin/python -m app.auth.seed \
+  --username admin \
+  --password "YourSecurePass@123" \
+  --email "admin@company.com" \
+  --full-name "System Administrator"
+```
+
+### Protecting Backend Routes
+
+```python
+from app.auth.dependencies import get_current_user, require_admin
+
+# Require any valid login:
+@router.get("/my-route")
+def my_route(user = Depends(get_current_user)):
+    ...
+
+# Require ADMIN or SUPER_ADMIN role:
+@router.delete("/sensitive")
+def sensitive(user = Depends(require_admin)):
+    ...
+```
+
 ## 🛠️ Tech Stack
 
 ### AI & Computer Vision
@@ -74,13 +150,22 @@ graph TD
 
 ### Backend & Infrastructure
 - **Python 3.10+ & Asyncio**: Core pipeline engine.
-- **FastAPI / AIOHTTP**: High-performance REST APIs and WebSocket servers.
+- **FastAPI**: High-performance REST APIs and WebSocket servers.
 - **PostgreSQL + `pgvector`**: Persistent storage and vector similarity search.
 - **Redis**: Pub/Sub event broadcasting for real-time UI updates.
+- **SQLAlchemy**: ORM for data models.
+- **python-jose + passlib[bcrypt]**: JWT signing and password hashing.
 
 ### Frontend
-- **Next.js (React)**: Server-side rendered, highly interactive dashboard.
+- **Next.js 14 (React)**: Server-side rendered, highly interactive dashboard.
 - **TailwindCSS**: Beautiful, utility-first styling.
+- **Framer Motion**: Smooth page transitions and micro-animations.
+- **Axios** with request interceptors: Auto-attaches JWT headers and silently refreshes on 401.
+
+### Auth Architecture
+- **Dual-token pattern**: Short-lived JWT (15 min) + long-lived httpOnly refresh cookie (7 days).
+- **React AuthContext**: Access token stored in-memory only — never `localStorage`.
+- **Silent refresh**: Proactively renews token 1 minute before expiry with no user interruption.
 
 ## 📊 Performance Benchmarks
 
@@ -110,28 +195,48 @@ After aggressive optimization for CPU edge deployment:
    cd VisageAI
    ```
 
-2. **Start the AI Pipeline**
+2. **Configure the Backend**
    ```bash
-   cd AI-Attendance-System
-   # Install requirements (recommend using a virtual environment)
+   cd backend
+   python -m venv venv && source venv/bin/activate
    pip install -r requirements.txt
-   # Start the pipeline
+   ```
+   
+   Create `backend/.env`:
+   ```env
+   JWT_SECRET_KEY=<run: python3 -c "import secrets; print(secrets.token_hex(32))">
+   JWT_ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=15
+   REFRESH_TOKEN_EXPIRE_DAYS=7
+   ```
+
+3. **Seed the first admin account**
+   ```bash
+   python -m app.auth.seed --username admin --password "Admin@1234" --email "admin@company.com"
+   ```
+
+4. **Start the Backend API**
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --port 8080
+   ```
+
+5. **Start the AI Pipeline**
+   ```bash
+   cd ../AI-Attendance-System
+   pip install -r requirements.txt
    bash start.sh start
    ```
 
-3. **Start the Backend API**
-   ```bash
-   cd ../backend
-   pip install -r requirements.txt
-   uvicorn app.main:app --reload --port 8000
-   ```
-
-4. **Start the UI Dashboard**
+6. **Start the UI Dashboard**
    ```bash
    cd ../attendance-ui
    npm install
    npm run dev
    ```
+
+7. **Login**
+   
+   Open `http://localhost:3000/login` and sign in with your admin credentials.
 
 ## 👨‍💻 Author
 

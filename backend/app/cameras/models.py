@@ -51,8 +51,8 @@ class DeviceConfig(Base):
     effective_to = Column(DateTime)
     is_active = Column(Boolean)
     created_at = Column(DateTime, default=get_current_utc)
-    # explicit foreign_keys and uselist=False to disambiguate the one-to-one relationship
-    camera = relationship("Camera", back_populates="device_config", foreign_keys=[camera_id], uselist=False)
+    # viewonly=True: Camera owns the FK (device_config_id), this is just a convenience accessor
+    camera = relationship("Camera", foreign_keys=[camera_id], uselist=False, viewonly=True)
 
 
 class AccessPoint(Base):

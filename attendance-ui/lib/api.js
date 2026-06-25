@@ -1,15 +1,22 @@
 // Centralized API helpers for the attendance UI.
-// Uses axios; NEXT_PUBLIC_API_BASE can override backend base URL.
+// Authorization headers are automatically injected by the axios interceptor in lib/auth.js.
+// This file only needs to define the base URLs and endpoint helpers.
 import axios from "axios";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
 const ONVIF = process.env.NEXT_PUBLIC_ONVIF_BASE || "http://localhost:5001";
-axios.defaults.withCredentials = true;
+// Note: axios.defaults.withCredentials is set per-request by the auth interceptor.
 
 // ---------------- Cameras ----------------
-export async function listCameras() { return (await axios.get(`${BASE}/api/cameras/`)).data; }
+export async function listCameras()  { return (await axios.get(`${BASE}/api/cameras/`)).data; }
 export async function addCamera(payload) { return (await axios.post(`${BASE}/api/cameras/`, payload)).data; }
+export async function updateCamera(id, payload) { return (await axios.put(`${BASE}/api/cameras/${id}`, payload)).data; }
 export async function deleteCamera(id) { return (await axios.delete(`${BASE}/api/cameras/${id}`)).data; }
+export async function listZones() { return (await axios.get(`${BASE}/api/cameras/zones`)).data; }
+export async function listNvr()   { return (await axios.get(`${BASE}/api/cameras/nvr`)).data; }
+export async function testRtspConnection(rtsp_url, timeout_seconds = 8) {
+  return (await axios.post(`${BASE}/api/cameras/test-connection`, { rtsp_url, timeout_seconds }, { timeout: 15000 })).data;
+}
 
 // ---------------- Shifts & Assignments ----------------
 export async function listShifts() { return (await axios.get(`${BASE}/api/shifts/`)).data; }

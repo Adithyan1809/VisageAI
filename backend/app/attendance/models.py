@@ -52,7 +52,7 @@ class AttendanceEvent(Base):
     camera = relationship("Camera", back_populates="attendance_events")
     zone = relationship("Zone", back_populates="attendance_events")
     shift = relationship("Shift", back_populates="attendance_events")
-    project_mappings = relationship("ProjectMapping", back_populates="attendance_event")
+    # ProjectMapping is not yet implemented — relationship removed to prevent mapper init failure
     reports = relationship("Report", back_populates="attendance_event")
     predictive_models = relationship("PredictiveModel", back_populates="attendance_event")
 

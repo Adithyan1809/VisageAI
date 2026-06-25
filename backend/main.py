@@ -33,11 +33,15 @@ from app.api import (
 
 )
 
+# Auth router
+from app.auth import router as auth_router_module
+
 # lightweight dev-only attendance reader (raw SQL)
 from app.api import dev_attendance
 
 # Ensure core model classes are imported so SQLAlchemy mappers initialize in the correct order
 import app.organization.models  # registers `Site` and related models
+import app.auth.models          # registers AdminUser + RefreshToken (needed for Base.metadata.create_all)
 
 app = FastAPI(title="SMAP Backend API", version="1.0.0-optimized")
 
@@ -56,6 +60,7 @@ app.add_middleware(
 )
 
 # Register all routers
+app.include_router(auth_router_module.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(cameras.router, prefix="/api/cameras", tags=["Cameras"])
 app.include_router(employees.router, prefix="/api/employees", tags=["Employees"])
 app.include_router(organization.router, prefix="/api/organization", tags=["Organization"])
@@ -121,7 +126,17 @@ def recent_attendance_api(hours: int = 24, limit: int = 200, db=Depends(get_db))
         return JSONResponse({"error": str(e)}, status_code=500)
 @app.on_event("startup")
 async def create_performance_indexes():
-    """Create critical performance indexes on application startup."""
+    """Create critical performance indexes and auth tables on application startup."""
+    # Ensure auth tables exist (admin_users, refresh_tokens)
+    try:
+        from app.config.database import Base
+        import app.auth.models  # noqa: ensure models are registered
+        Base.metadata.create_all(bind=engine)
+        logger.info("✓ Auth tables created/verified (admin_users, refresh_tokens)")
+    except Exception as e:
+        logger.warning(f"Auth table creation: {e}")
+
+    # Create performance indexes for attendance data
     try:
         with engine.begin() as conn:
             indexes = [
@@ -142,5 +157,4 @@ async def create_performance_indexes():
             conn.commit()
             logger.info("✓ Performance indexes created/verified")
     except Exception as e:
-        logger.warning(f"Startup index creation: {e}")
         logger.warning(f"Startup index creation: {e}")
