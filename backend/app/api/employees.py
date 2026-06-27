@@ -139,6 +139,17 @@ def register_broadcaster(app):
         _asyncio.create_task(employee_poll_loop())
         # start a thread to listen for Postgres NOTIFY messages (instant)
         def _start_listener():
+            # Get a reference to the running event loop from the main thread
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = None
+
+            def _dispatch(coro):
+                """Schedule a coroutine on the main event loop from this background thread."""
+                if loop and not loop.is_closed():
+                    asyncio.run_coroutine_threadsafe(coro, loop)
+
             try:
                 # DATABASE_URL is like postgresql+psycopg2://user:pass@host:port/db
                 pg_url = DATABASE_URL.replace("postgresql+psycopg2://", "postgresql://")
@@ -153,37 +164,32 @@ def register_broadcaster(app):
                     while conn.notifies:
                         notify = conn.notifies.pop(0)
                         try:
-                            payload = _json.loads(notify.payload)
+                            payload = json.loads(notify.payload)
                         except Exception:
-                            # payload may be simple id or text; try to handle
                             try:
-                                payload = _json.loads(notify.payload.replace("'", '"'))
+                                payload = json.loads(notify.payload.replace("'", '"'))
                             except Exception:
                                 payload = {"type": "raw", "data": notify.payload}
 
-                        # If payload contains type and id, process accordingly
                         typ = payload.get("type")
                         if typ == "deleted":
                             eid = payload.get("id")
                             if eid:
-                                # broadcast deleted
-                                _asyncio.run(broadcast_message({"type": "deleted", "id": eid}))
+                                _dispatch(broadcast_message({"type": "deleted", "id": eid}))
                         elif typ in ("upsert", "insert", "update"):
                             eid = payload.get("id")
                             if eid:
-                                # fetch full row and broadcast
                                 try:
                                     with engine.connect() as c:
                                         emp = _fetch_full_employee(c, eid)
                                         if emp:
-                                            _asyncio.run(broadcast_message({"type": "upsert", "employee": emp}))
+                                            _dispatch(broadcast_message({"type": "upsert", "employee": emp}))
                                 except Exception:
                                     pass
                         else:
-                            # unknown payload — broadcast raw
-                            _asyncio.run(broadcast_message({"type": "raw", "data": payload}))
+                            _dispatch(broadcast_message({"type": "raw", "data": payload}))
             except Exception:
-                # listener failed — let poll loop remain as fallback
+                # listener failed — poll loop remains as fallback
                 return
 
         t = threading.Thread(target=_start_listener, daemon=True)
@@ -522,7 +528,9 @@ def delete_employee(emp_id: str, db: Session = Depends(get_db)):
 
     # Broadcast deletion to all connected WebSocket clients
     try:
-        asyncio.run(broadcast_message({"type": "deleted", "id": emp_id}))
+        loop = asyncio.get_event_loop()
+        if loop and loop.is_running():
+            asyncio.ensure_future(broadcast_message({"type": "deleted", "id": emp_id}))
     except Exception:
         pass
 

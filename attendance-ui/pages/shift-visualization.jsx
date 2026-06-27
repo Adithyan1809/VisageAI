@@ -1,7 +1,10 @@
+import axios from 'axios';
 import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from "../components/PageHeader";
 import Card from "../components/Card";
-import { BarChart2, Clock, Users } from "lucide-react";
+import { BarChart2, Clock, Users, CalendarDays, Clock as ClockIcon, FileText } from "lucide-react";
+import { toast } from 'sonner';
+import EmptyState from '../components/EmptyState';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -15,7 +18,7 @@ import {
 } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8081'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8080'
 
 // small helper to parse dates similar to dashboard
 function parseToDate(ev) {
@@ -67,10 +70,10 @@ export default function ShiftVisualization() {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/dev/attendance/recent?hours=24&limit=2000`, { credentials: 'include' });
+        const res = await axios.get(`${API_BASE}/api/dev/attendance/recent?hours=24&limit=2000`, { withCredentials: true });
         if (!mounted) return;
-        if (res.ok) {
-          const items = await res.json();
+        if (res.status === 200) {
+          const items = res.data;
           setAttendanceEvents(Array.isArray(items) ? items : []);
         }
       } catch (e) {
@@ -86,13 +89,13 @@ export default function ShiftVisualization() {
       setLoading(true);
       try {
         const [sRes, aRes, eRes] = await Promise.all([
-          fetch(`${API_BASE}/api/shifts`),
-          fetch(`${API_BASE}/api/assignments`),
-          fetch(`${API_BASE}/api/employees`),
+          axios.get(`${API_BASE}/api/shifts`),
+          axios.get(`${API_BASE}/api/assignments`),
+          axios.get(`${API_BASE}/api/employees`),
         ]);
-        const s = sRes.ok ? await sRes.json() : [];
-        const a = aRes.ok ? await aRes.json() : [];
-        const e = eRes.ok ? await eRes.json() : [];
+        const s = sRes.status === 200 ? sRes.data : [];
+        const a = aRes.status === 200 ? aRes.data : [];
+        const e = eRes.status === 200 ? eRes.data : [];
         if (!mounted) return;
         setShifts(Array.isArray(s) ? s : []);
         setAssignments(Array.isArray(a) ? a : []);
@@ -225,6 +228,7 @@ export default function ShiftVisualization() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    toast.success('Assignments exported successfully');
   }
 
   return (
@@ -277,9 +281,9 @@ export default function ShiftVisualization() {
               <h3 className="text-lg font-semibold">24-hour Shift Timeline</h3>
               <div className="flex items-center space-x-2">
                 <label className="text-sm text-slate-400">Date</label>
-                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="px-2 py-1 rounded border dark:bg-slate-800 dark:border-slate-700" />
-                <input placeholder="Search shifts..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="ml-3 px-2 py-1 rounded border dark:bg-slate-800 dark:border-slate-700 text-sm" />
-                <label className="ml-2 text-sm text-slate-400 flex items-center"><input type="checkbox" className="mr-2" checked={onlyAssigned} onChange={(e) => setOnlyAssigned(e.target.checked)} />Only show assigned</label>
+                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="px-4 py-2 rounded-xl bg-black/40 border border-glass-border text-white outline-none appearance-none" />
+                <input placeholder="Search shifts..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="ml-3 px-4 py-2 rounded-xl bg-black/40 border border-glass-border text-white outline-none text-sm" />
+                <label className="ml-2 text-sm text-slate-400 flex items-center"><input type="checkbox" className="mr-2 rounded border-glass-border bg-black/40" checked={onlyAssigned} onChange={(e) => setOnlyAssigned(e.target.checked)} />Only show assigned</label>
               </div>
             </div>
 
@@ -312,9 +316,9 @@ export default function ShiftVisualization() {
 
             <div className="space-y-3">
               {loading ? (
-                <div className="text-sm text-slate-500">Loading shifts…</div>
+                <div className="py-10 flex justify-center"><div className="w-6 h-6 border-2 border-brand-blue border-t-transparent rounded-full animate-spin"></div></div>
               ) : shiftsToday.length === 0 ? (
-                <div className="text-sm text-slate-500">No shifts defined yet.</div>
+                <EmptyState icon={ClockIcon} title="No shifts defined" description="Create shift definitions to see them visualized here." />
                 ) : (
                 filteredShifts.map((s) => {
                   const startMin = hhmmToMinutes(s.start);
@@ -385,7 +389,7 @@ export default function ShiftVisualization() {
               <button onClick={() => window.print()} className="px-3 py-1 border rounded text-sm">Print</button>
             </div>
             {assignmentsForDate.length === 0 ? (
-              <div className="text-sm text-slate-500">No assignments for the selected date.</div>
+              <EmptyState icon={CalendarDays} title="No assignments" description="No assignments found for the selected date." />
             ) : (
               <div className="space-y-2">
                 {assignmentsForDate.map(a => {

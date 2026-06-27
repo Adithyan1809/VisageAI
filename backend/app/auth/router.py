@@ -4,6 +4,7 @@ SQLAlchemy mapper initialization issues from legacy broken relationships
 in other modules. The admin_users and refresh_tokens tables are simple
 and don't need ORM for the auth endpoints.
 """
+import os
 import uuid
 import datetime
 import logging
@@ -126,11 +127,13 @@ def _insert_refresh_token(db: Session, user_id, token_hash: str, expires_at: dat
 # ---------------------------------------------------------------------------
 def _set_refresh_cookie(response: Response, raw_token: str, expires_at: datetime.datetime):
     max_age = int((expires_at - datetime.datetime.utcnow()).total_seconds())
+    # Set secure=True in production (HTTPS). Configure via COOKIE_SECURE=true in .env
+    secure = os.getenv("COOKIE_SECURE", "false").lower() == "true"
     response.set_cookie(
         key=REFRESH_COOKIE_NAME,
         value=raw_token,
         httponly=True,
-        secure=False,      # Set True in production (HTTPS)
+        secure=secure,
         samesite="lax",
         max_age=max_age,
         path="/api/auth",

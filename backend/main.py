@@ -1,10 +1,11 @@
 import os
 import uvicorn
 import logging
+import asyncio
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 from dotenv import load_dotenv
 
@@ -23,33 +24,33 @@ logger = logging.getLogger(__name__)
 
 # Import the routers from the folder structure
 from app.api import (
-    cameras, 
-    employees, 
+    cameras,
+    employees,
     organization,
-    facial_templates, 
-    onvif, 
-    attendance, 
-    shifts, 
+    facial_templates,
+    onvif,
+    attendance,
+    shifts,
     assignments,
     db_probe,
     pipeline,
     face_enrollment,
-
 )
 
-# Auth router
+# Auth router + dependency
 from app.auth import router as auth_router_module
+from app.auth.dependencies import get_current_user, require_admin
 
-# lightweight dev-only attendance reader (raw SQL)
+# Dev-only attendance reader — only mounted when APP_ENV=development
 from app.api import dev_attendance
 
-# Ensure core model classes are imported so SQLAlchemy mappers initialize in the correct order
+# Ensure core model classes are imported so SQLAlchemy mappers initialize correctly
 import app.organization.models  # registers `Site` and related models
-import app.auth.models          # registers AdminUser + RefreshToken (needed for Base.metadata.create_all)
+import app.auth.models          # registers AdminUser + RefreshToken
 
-app = FastAPI(title="SMAP Backend API", version="1.0.0-optimized")
+app = FastAPI(title="SMAP Backend API", version="1.0.0")
 
-# CORS — origins loaded from CORS_ORIGINS env variable (comma-separated)
+# ── CORS ────────────────────────────────────────────────────────────────────
 _raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
 ALLOW_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
@@ -61,25 +62,64 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register all routers
+# ── Public routes (no auth required) ────────────────────────────────────────
 app.include_router(auth_router_module.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(cameras.router, prefix="/api/cameras", tags=["Cameras"])
-app.include_router(employees.router, prefix="/api/employees", tags=["Employees"])
-app.include_router(organization.router, prefix="/api/organization", tags=["Organization"])
-app.include_router(facial_templates.router, prefix="/api/facial-templates", tags=["Facial Templates"])
-app.include_router(assignments.router, prefix="/api/assignments", tags=["Assignments"])
-app.include_router(db_probe.router, prefix="/api", tags=["DB"])
-app.include_router(onvif.router, prefix="/api/onvif", tags=["ONVIF"])
-app.include_router(attendance.router, prefix="/api/attendance", tags=["Attendance"])
-app.include_router(dev_attendance.router, prefix="/api/dev/attendance", tags=["DevAttendance"]) 
-app.include_router(shifts.router, prefix="/api/shifts", tags=["Shifts"])
-app.include_router(pipeline.router, prefix="/api/pipeline", tags=["ML Pipeline"])
-app.include_router(face_enrollment.router, prefix="/api/face-enrollment", tags=["Face Enrollment"])
+
+# ── Protected routes (JWT required) ─────────────────────────────────────────
+_auth = [Depends(get_current_user)]
+
+app.include_router(cameras.router,          prefix="/api/cameras",          tags=["Cameras"],           dependencies=_auth)
+app.include_router(employees.router,        prefix="/api/employees",        tags=["Employees"],         dependencies=_auth)
+app.include_router(organization.router,     prefix="/api/organization",     tags=["Organization"],      dependencies=_auth)
+app.include_router(facial_templates.router, prefix="/api/facial-templates", tags=["Facial Templates"],  dependencies=_auth)
+app.include_router(assignments.router,      prefix="/api/assignments",      tags=["Assignments"],       dependencies=_auth)
+app.include_router(onvif.router,            prefix="/api/onvif",            tags=["ONVIF"],             dependencies=_auth)
+app.include_router(attendance.router,       prefix="/api/attendance",       tags=["Attendance"],        dependencies=_auth)
+app.include_router(shifts.router,           prefix="/api/shifts",           tags=["Shifts"],            dependencies=_auth)
+app.include_router(pipeline.router,         prefix="/api/pipeline",         tags=["ML Pipeline"],       dependencies=_auth)
+app.include_router(face_enrollment.router,  prefix="/api/face-enrollment",  tags=["Face Enrollment"],   dependencies=_auth)
+
+# ── Admin-only routes ────────────────────────────────────────────────────────
+_admin = [Depends(require_admin)]
+app.include_router(db_probe.router,         prefix="/api",                  tags=["DB"],                dependencies=_admin)
+
+# ── Dev-only routes (only mounted in development) ────────────────────────────
+if os.getenv("APP_ENV", "production") == "development":
+    app.include_router(dev_attendance.router, prefix="/api/dev/attendance", tags=["DevAttendance"])
+    logger.warning("⚠ Dev attendance routes mounted — do not run in production!")
 
 
 @app.get("/")
 def home():
     return {"status": "SMAP Backend Running", "version": "1.0"}
+
+
+@app.get("/health")
+def health_check(db=Depends(get_db)):
+    """Health check — verifies DB and reports Redis status."""
+    # DB check
+    try:
+        db.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception as e:
+        logger.error(f"Health check DB error: {e}")
+        db_ok = False
+
+    # Redis check
+    try:
+        import redis as _redis
+        r = _redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
+        r.ping()
+        redis_ok = True
+    except Exception:
+        redis_ok = False
+
+    status = "ok" if db_ok else "degraded"
+    return JSONResponse(
+        {"status": status, "db": db_ok, "redis": redis_ok},
+        status_code=200 if db_ok else 503,
+    )
+
 
 if __name__ == "__main__":
     port = int(os.getenv("BACKEND_PORT", "8080"))
@@ -88,43 +128,10 @@ if __name__ == "__main__":
 # register employee broadcaster after app created so it starts on startup
 try:
     employees.register_broadcaster(app)
-except Exception:
-    pass
+except Exception as e:
+    logger.warning(f"Employee broadcaster registration failed: {e}")
 
 
-# Fallback recent attendance route in case the API module isn't registered correctly
-@app.get("/api/attendance/recent")
-def recent_attendance_api(hours: int = 24, limit: int = 200, db=Depends(get_db)):
-    """Return recent attendance using a lightweight raw SQL query to avoid importing ORM mappers at module import time."""
-    try:
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
-        sql = (
-            "SELECT id, employee_id, camera_id, event_type, event_time "
-            "FROM attendance_events "
-            "WHERE event_time >= :cutoff "
-            "ORDER BY event_time DESC "
-            "LIMIT :limit"
-        )
-        result = db.execute(sql, {"cutoff": cutoff, "limit": limit})
-        rows = result.fetchall()
-
-        out = []
-        for r in rows:
-            # r is a SQLAlchemy Row; access by index or key
-            event_time = r['event_time'] if 'event_time' in r.keys() else r[4]
-            out.append({
-                "id": r['id'] if 'id' in r.keys() else r[0],
-                "employee_id": r['employee_id'] if 'employee_id' in r.keys() else r[1],
-                "employee_name": None,
-                "camera_id": r['camera_id'] if 'camera_id' in r.keys() else r[2],
-                "time": event_time.isoformat() if event_time is not None else None,
-                "event_type": r['event_type'] if 'event_type' in r.keys() else r[3],
-            })
-
-        return JSONResponse(out)
-    except Exception as e:
-        logger.error(f"Error fetching recent attendance: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
 @app.on_event("startup")
 async def create_performance_indexes():
     """Create critical performance indexes and auth tables on application startup."""

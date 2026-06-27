@@ -1,9 +1,11 @@
+import axios from 'axios';
 import { PageHeader } from "../components/PageHeader";
 import Card from "../components/Card";
 import Modal from "../components/Modal";
 import { useEffect, useState, useRef } from "react";
 import { Line } from 'react-chartjs-2';
-import { Download } from 'lucide-react';
+import { Download, Users, Camera as CameraIcon, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,7 +19,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8081'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8080'
 
 // small helper: build a sparkline SVG path from an array of numbers
 function buildSparklinePath(values = [], w = 120, h = 28) {
@@ -50,9 +52,9 @@ export default function Home() {
     const fetchRecent = async () => {
       try {
         // Prefer dev reader when backend ORM mappings are unstable
-        const res = await fetch(`${API_BASE}/api/dev/attendance/recent?hours=24&limit=1000`, { credentials: 'include' });
-        if (res.ok) {
-          const items = await res.json();
+        const res = await axios.get(`${API_BASE}/api/dev/attendance/recent?hours=24&limit=1000`, { withCredentials: true });
+        if (res.status === 200) {
+          const items = res.data;
           // Normalize DB attendance rows into the same shape we receive via SSE
           const normalized = (items || []).map((r) => ({
             employee_id: r.employee_id,
@@ -69,20 +71,20 @@ export default function Home() {
           try {
             // fetch departments and employees so we can show department names in the dashboard
             const [empsResp, depsResp] = await Promise.all([
-              fetch(`${API_BASE}/api/employees`, { credentials: 'include' }).catch(() => ({ ok: false })),
-              fetch(`${API_BASE}/api/organization/departments`, { credentials: 'include' }).catch(() => ({ ok: false })),
+              axios.get(`${API_BASE}/api/employees`, { withCredentials: true }).catch(() => ({ status: 0, data: null })),
+              axios.get(`${API_BASE}/api/organization/departments`, { withCredentials: true }).catch(() => ({ status: 0, data: null })),
             ])
 
             const deptMap = {}
-            if (depsResp && depsResp.ok) {
+            if (depsResp && depsResp.status === 200) {
               try {
-                const depsJson = await depsResp.json()
+                const depsJson = depsResp.data;
                 (depsJson || []).forEach(d => { if (d.id) deptMap[d.id] = d.name || d.department_name || d.name })
               } catch (e) {}
             }
 
-            if (empsResp && empsResp.ok) {
-              const empsJson = await empsResp.json();
+            if (empsResp && empsResp.status === 200) {
+              const empsJson = empsResp.data;
               const nameMap = {};
               const edMap = {};
               const edByName = {};
@@ -141,9 +143,9 @@ export default function Home() {
     // fetch total employees for a KPI card (best-effort)
     (async () => {
       try {
-        const r = await fetch(`${API_BASE}/api/employees`, { credentials: 'include' });
-        if (r.ok) {
-          const j = await r.json();
+        const r = await axios.get(`${API_BASE}/api/employees`, { withCredentials: true });
+        if (r.status === 200) {
+          const j = r.data;
           setTotalEmployees(Array.isArray(j) ? j.length : null);
         }
       } catch (e) {}
@@ -361,148 +363,209 @@ export default function Home() {
   const [exportTo, setExportTo] = useState('');
 
   return (
-    <>
-      <PageHeader title="Dashboard" subtitle="Real-time Updates Active" />
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-[1600px] mx-auto space-y-8"
+    >
+      <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Live Telemetry</h2>
+          <p className="text-muted mt-1">Real-time attendance stream and system vitals.</p>
+        </div>
+        <button 
+          onClick={() => setExportModalOpen(true)} 
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-blue hover:bg-blue-500 text-white rounded-xl text-sm font-semibold shadow-glow-brand transition-all hover:scale-105 active:scale-95"
+        >
+          <Download className="w-4 h-4" /> Export Report
+        </button>
+      </div>
 
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <div className="text-sm text-slate-400">Total Employees</div>
-          <div className="flex items-end justify-between mt-2">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <div className="text-2xl font-semibold text-slate-100">{totalEmployees ?? '—'}</div>
-                <div className="text-xs text-slate-400">Registered</div>
-              </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="text-sm text-slate-400">Present Now</div>
-          <div className="text-2xl mt-2 text-slate-100">{presentCount}</div>
-        </Card>
-
-        <Card>
-          <div className="text-sm text-slate-400">Cameras Active</div>
-          <div className="text-2xl mt-2 text-slate-100">{uniqueCameras}</div>
-        </Card>
-
-        <Card>
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="text-sm text-slate-400">Alerts</div>
-              <div className="text-2xl mt-2 text-amber-300">{alerts.length}</div>
+              <p className="text-sm font-medium text-brand-cyan">Total Enrolled</p>
+              <div className="text-3xl font-bold text-white mt-1">{totalEmployees ?? '—'}</div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-brand-blue/20 flex items-center justify-center text-brand-blue shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+              <Users className="w-6 h-6" />
             </div>
           </div>
-          <div className="text-xs text-slate-500 mt-2">Auto-refresh:</div>
-          <div className="mt-1">
-            <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} /> Enable</label>
+        </Card>
+
+        <Card className="relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-success/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <p className="text-sm font-medium text-success">Present Today</p>
+              <div className="text-3xl font-bold text-white mt-1">{presentCount}</div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center text-success shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <p className="text-sm font-medium text-purple-400">Active Cameras</p>
+              <div className="text-3xl font-bold text-white mt-1">{uniqueCameras}</div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+              <CameraIcon className="w-6 h-6" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-danger/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <p className="text-sm font-medium text-danger">Unknown Faces</p>
+              <div className="text-3xl font-bold text-white mt-1">{alerts.length}</div>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-danger/20 flex items-center justify-center text-danger shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+              <AlertCircle className="w-6 h-6" />
+            </div>
           </div>
         </Card>
       </div>
-    </div>
 
-        <div className="w-48 flex items-start justify-end">
-          <div className="flex flex-col items-end">
-            <div className="text-sm text-slate-400 mb-2">Export Attendance</div>
-            <button title="Export Attendance" onClick={() => setExportModalOpen(true)} className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-lg">
-              <Download className="w-4 h-4 mr-2" /> Export
-            </button>
-            <div className="text-xs text-slate-500 mt-2">CSV / JSON · choose range</div>
-          </div>
-        </div>
-      </div>
-
-      <Modal isOpen={exportModalOpen} onClose={() => setExportModalOpen(false)} title="Export Attendance">
-        <div className="space-y-3">
+      <Modal isOpen={exportModalOpen} onClose={() => setExportModalOpen(false)} title="Export Attendance Data">
+        <div className="space-y-4 mt-4">
           <div>
-            <div className="text-sm text-slate-400 mb-1">Format</div>
-            <select value={exportFormat} onChange={e => setExportFormat(e.target.value)} className="w-full px-2 py-1 rounded border dark:bg-slate-800">
-              <option value="csv">CSV</option>
-              <option value="json">JSON</option>
+            <label className="block text-sm font-medium text-muted mb-1.5">File Format</label>
+            <select value={exportFormat} onChange={e => setExportFormat(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none transition-all">
+              <option value="csv">CSV (Spreadsheet)</option>
+              <option value="json">JSON (Raw Data)</option>
             </select>
           </div>
-
-          <div>
-            <div className="text-sm text-slate-400 mb-1">Date Range (optional)</div>
-            <div className="flex items-center gap-2">
-              <input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)} className="px-2 py-1 rounded border dark:bg-slate-800" />
-              <span className="text-slate-400">to</span>
-              <input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)} className="px-2 py-1 rounded border dark:bg-slate-800" />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-muted mb-1.5">From Date</label>
+              <input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none" />
             </div>
-            <div className="text-xs text-slate-500 mt-1">Leave blank to export recent events.</div>
+            <div>
+              <label className="block text-sm font-medium text-muted mb-1.5">To Date</label>
+              <input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none" />
+            </div>
           </div>
-
-          <div className="flex items-center justify-end space-x-2 mt-4">
-            <button onClick={() => setExportModalOpen(false)} className="px-3 py-1 border rounded text-sm">Cancel</button>
-            <button onClick={() => { exportAttendance({ format: exportFormat, from: exportFrom || null, to: exportTo || null }); setExportModalOpen(false); }} className="px-3 py-1 bg-blue-600 text-white rounded text-sm">Export</button>
+          <div className="flex items-center justify-end gap-3 mt-8">
+            <button onClick={() => setExportModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-medium text-muted hover:text-white hover:bg-white/5 transition-colors">Cancel</button>
+            <button onClick={() => { exportAttendance({ format: exportFormat, from: exportFrom || null, to: exportTo || null }); setExportModalOpen(false); }} className="px-5 py-2.5 bg-brand-blue hover:bg-blue-500 text-white rounded-xl text-sm font-semibold shadow-glow-brand transition-all hover:scale-105 active:scale-95">Download File</button>
           </div>
         </div>
       </Modal>
 
-      <div className="w-full px-6 mt-6">
-        
-        <Card>
-          <h3 className="text-lg font-bold mb-4">Recent Attendance</h3>
-          <div className="overflow-x-auto">
-            {liveEvents.length === 0 ? (
-              <div className="text-sm text-slate-500 p-6">No recent attendance events.</div>
-            ) : (
-              <table className="min-w-full table-auto text-sm">
-                <thead>
-                    <tr className="text-left text-slate-400 sticky top-0 bg-slate-900">
-                      <th className="px-4 py-2">Time</th>
-                      <th className="px-4 py-2">Department</th>
-                      <th className="px-4 py-2">Employee</th>
-                      <th className="px-4 py-2">Camera</th>
-                      <th className="px-4 py-2">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                  {liveEvents.map((ev, i) => {
-                    const isEven = i % 2 === 0;
-                    const name = ev.employee_name || ev.employee || ev.employee_id || 'unknown';
-                    const initials = (name && name !== 'unknown') ? name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() : 'UN';
-                    return (
-                      <tr key={i} className={`${isEven ? 'bg-slate-800' : 'bg-transparent'} border-t border-slate-700 hover:bg-slate-800`}> 
-                        <td className="px-4 py-3 text-slate-400 w-44">
-                          <div className="flex flex-col">
-                            <span className="whitespace-nowrap">{formatAbsolute(ev)}</span>
-                            <span className="text-xs muted mt-0.5">{relativeTime(ev)}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm text-slate-200">
-                            {(() => {
-                              // prefer event-provided department, then department_name, then lookup by employee id, then lookup by employee name
-                              const nameKey = ev.employee_name ? String(ev.employee_name).trim().toLowerCase() : null
-                              const dept = ev.department || ev.department_name || employeesDeptMap[ev.employee_id] || (nameKey ? employeesDeptByName[nameKey] : null) || '-'
-                              return dept || '-'
-                            })()}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-medium">{name}</td>
-                        <td className="px-4 py-3 text-slate-400">{ev.camera_id || ev.camera || '-'}</td>
-                        <td className="px-4 py-3">
-                          {ev.attendance_marked ? (
-                            <span className="inline-block bg-green-800 text-green-200 px-2 py-0.5 rounded text-xs">Present</span>
-                          ) : ev.recognized ? (
-                            <span className="inline-block bg-yellow-800 text-yellow-200 px-2 py-0.5 rounded text-xs">Recognized</span>
-                          ) : (
-                            <span className="inline-block bg-red-800 text-red-200 px-2 py-0.5 rounded text-xs">Unknown</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
+      {/* Main Feed */}
+      <Card className="!p-0 overflow-hidden">
+        <div className="p-6 border-b border-glass-border flex items-center justify-between">
+          <h3 className="text-xl font-semibold text-white">Live Activity Stream</h3>
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
+            </span>
+            <span className="text-sm font-medium text-success">Live</span>
           </div>
-        </Card>
-        {/* Alerts: unknown faces */}
-       
-      </div>
-    </>
+        </div>
+        
+        <div className="overflow-x-auto max-h-[600px] custom-scrollbar">
+          {liveEvents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-12 text-muted">
+              <div className="w-16 h-16 mb-4 rounded-full bg-white/5 flex items-center justify-center border border-glass-border">
+                <CameraIcon className="w-6 h-6 opacity-50" />
+              </div>
+              <p>No activity detected yet.</p>
+              <p className="text-xs mt-1">Waiting for cameras to report detections...</p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-glass-card/90 backdrop-blur-md z-10 border-b border-glass-border text-xs uppercase tracking-wider text-muted font-semibold">
+                <tr>
+                  <th className="px-6 py-4">Timestamp</th>
+                  <th className="px-6 py-4">Subject</th>
+                  <th className="px-6 py-4">Department</th>
+                  <th className="px-6 py-4">Source Camera</th>
+                  <th className="px-6 py-4 text-right">Match Confidence</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-glass-border/50">
+                {liveEvents.map((ev, i) => {
+                  const name = ev.employee_name || ev.employee || ev.employee_id || 'unknown';
+                  const isUnknown = name === 'unknown';
+                  const initials = isUnknown ? '?' : name.substring(0,2).toUpperCase();
+                  const confidence = (ev.similarity * 100).toFixed(1);
+                  
+                  return (
+                    <motion.tr 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      key={`${ev.track_id}-${i}`} 
+                      className="hover:bg-white/[0.02] transition-colors group"
+                    > 
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-white font-medium">{formatAbsolute(ev).split(', ')[1]}</div>
+                        <div className="text-xs text-muted">{relativeTime(ev)}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isUnknown ? 'bg-danger/20 text-danger border border-danger/30' : 'bg-brand-blue/20 text-brand-blue border border-brand-blue/30 group-hover:shadow-glow-brand transition-all'}`}>
+                            {initials}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-white">{name}</div>
+                            <div className="text-xs text-muted flex items-center gap-1">
+                              {ev.attendance_marked ? (
+                                <span className="text-success flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Marked Present</span>
+                              ) : (
+                                <span>Track #{ev.track_id}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex px-2.5 py-1 rounded-md bg-white/5 border border-glass-border text-xs text-slate-300">
+                          {ev.department || employeesDeptMap[ev.employee_id] || '-'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted">
+                        <div className="flex items-center gap-1.5">
+                          <CameraIcon className="w-3.5 h-3.5" /> {ev.camera_id || ev.camera || '-'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {ev.from_db || !ev.similarity ? (
+                          <span className="text-sm text-slate-500">—</span>
+                        ) : (
+                          <div className="inline-flex items-center gap-2">
+                            <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min(100, Math.max(0, confidence))}%` }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                                className={`h-full ${isUnknown ? 'bg-danger' : 'bg-success'}`}
+                              />
+                            </div>
+                            <span className={`text-sm font-semibold ${isUnknown ? 'text-danger' : 'text-success'}`}>{confidence}%</span>
+                          </div>
+                        )}
+                      </td>
+                    </motion.tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </Card>
+    </motion.div>
   );
 }

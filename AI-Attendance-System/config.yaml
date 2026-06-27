@@ -44,7 +44,8 @@ scale_down_threshold: 75        # OPTIMIZED: 150 → 75
 api_port: 8082
 
 # DATABASE SETTINGS (SMAP)
-DB_URL: "postgresql://postgres:root@localhost:5432/SMAP_DB"
+# DB_URL is read from the .env file in this directory (AI-Attendance-System/.env)
+# Never hardcode credentials here — use AI-Attendance-System/.env instead.
 MAX_DB_CONNECTIONS: 10
 
 # RECOGNITION THRESHOLDS — InsightFace buffalo_l (w600k_r50)

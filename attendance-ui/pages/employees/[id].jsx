@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Card from "../../components/Card";
 import { getEmployee, deleteEmployee } from "../../lib/api";
+import { toast } from "sonner";
 
 export default function EmployeeView() {
   const router = useRouter();
@@ -33,9 +34,10 @@ export default function EmployeeView() {
     if (!confirm("Delete this employee? This cannot be undone.")) return;
     try {
       await deleteEmployee(id);
+      toast.success("Employee deleted successfully");
       router.push("/employees");
     } catch (e) {
-      alert("Failed to delete employee");
+      toast.error("Failed to delete employee");
       console.error(e);
     }
   }
@@ -72,7 +74,7 @@ export default function EmployeeView() {
           <Link href="/employees">
             <button className="px-3 py-2 border border-slate-600 text-slate-200 rounded hover:bg-slate-700/30">Back</button>
           </Link>
-          <Link href={`/employees/edit/${id}`}>
+          <Link href={`/employees/${id}/edit`}>
             <button className="px-3 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700">Edit</button>
           </Link>
           <button onClick={handleDelete} className="px-3 py-2 bg-red-600 text-white rounded shadow hover:bg-red-700">Delete</button>

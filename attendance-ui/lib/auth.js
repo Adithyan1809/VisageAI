@@ -147,6 +147,10 @@ export function AuthProvider({ children }) {
     return () => { cancelled = true; };
   }, [scheduleRefresh]);
 
+  // Keep a ref to the latest access token for the interceptor (declared before useEffect that uses it)
+  const tokenRef = useRef(state.accessToken);
+  useEffect(() => { tokenRef.current = state.accessToken; }, [state.accessToken]);
+
   // ---------------------------------------------------------------------------
   // Axios request interceptor — attach JWT to every request
   // ---------------------------------------------------------------------------
@@ -163,10 +167,6 @@ export function AuthProvider({ children }) {
 
     return () => axios.interceptors.request.eject(reqInterceptor);
   }, []);
-
-  // Keep a ref to the latest access token for the interceptor
-  const tokenRef = useRef(state.accessToken);
-  useEffect(() => { tokenRef.current = state.accessToken; }, [state.accessToken]);
 
   // ---------------------------------------------------------------------------
   // Axios response interceptor — auto-retry on 401 with fresh token
