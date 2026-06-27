@@ -1,3 +1,4 @@
+import os
 import uvicorn
 import logging
 from fastapi import FastAPI, Depends, HTTPException
@@ -5,6 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
 from sqlalchemy import text
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # lightweight import for DB usage in a helper route
 from app.config.session import get_db
@@ -45,15 +49,13 @@ import app.auth.models          # registers AdminUser + RefreshToken (needed for
 
 app = FastAPI(title="SMAP Backend API", version="1.0.0-optimized")
 
-# CORS for your Next.js UI (Port 3000)
+# CORS — origins loaded from CORS_ORIGINS env variable (comma-separated)
+_raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+ALLOW_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000"
-    ],
+    allow_origins=ALLOW_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -80,9 +82,8 @@ def home():
     return {"status": "SMAP Backend Running", "version": "1.0"}
 
 if __name__ == "__main__":
-    # Run on port 8081 to match your frontend api.js
-    # Use reload=False when running in background to avoid reloader lifecycle issues
-    uvicorn.run("main:app", host="0.0.0.0", port=8081, reload=False)
+    port = int(os.getenv("BACKEND_PORT", "8080"))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
 
 # register employee broadcaster after app created so it starts on startup
 try:
