@@ -15,10 +15,11 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (e.g. user hits /login with active session)
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace("/");
+      const redirectTo = router.query.redirect || '/';
+      router.replace(Array.isArray(redirectTo) ? redirectTo[0] : redirectTo);
     }
   }, [isAuthenticated, isLoading, router]);
 
@@ -43,7 +44,9 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(form.username.trim(), form.password, form.rememberMe);
-      router.replace("/");
+      // Redirect to original destination or dashboard
+      const redirectTo = router.query.redirect || '/';
+      router.replace(Array.isArray(redirectTo) ? redirectTo[0] : redirectTo);
     } catch (err) {
       const detail = err?.response?.data?.detail;
       if (err?.response?.status === 429) {

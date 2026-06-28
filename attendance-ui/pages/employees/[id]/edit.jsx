@@ -1,8 +1,8 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Card from '../../components/Card'
-import { getEmployee, updateEmployee } from '../../lib/api'
+import Card from '../../../components/Card'
+import { getEmployee, updateEmployee } from '../../../lib/api'
 
 export default function EditEmployeePage() {
   const router = useRouter()
@@ -56,7 +56,6 @@ export default function EditEmployeePage() {
       await updateEmployee(id, payload)
       router.push(`/employees/${id}`)
     } catch (err) {
-      console.error('Update failed', err)
       setErrors({ submit: 'Save failed — try again' })
     } finally {
       setSaving(false)

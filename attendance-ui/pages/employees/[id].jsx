@@ -38,7 +38,6 @@ export default function EmployeeView() {
       router.push("/employees");
     } catch (e) {
       toast.error("Failed to delete employee");
-      console.error(e);
     }
   }
 

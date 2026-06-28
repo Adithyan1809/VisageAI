@@ -10,6 +10,7 @@ import Modal from "../components/Modal";
 import Input from "../components/Input";
 import Select from "../components/Select";
 import { listShifts, listAssignments, listEmployees, createShift, updateShift, deleteShift, createAssignment, updateAssignment, deleteAssignment } from "../lib/api";
+import { useAuth } from '../lib/auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
 
@@ -58,7 +59,7 @@ export default function Shifts() {
         ws.onmessage = () => {
           fetchAll();
         };
-        ws.onclose = () => setTimeout(setupWs, 2000);
+        ws.onclose = () => { if (mounted) setTimeout(setupWs, 2000); };
         ws.onerror = () => ws.close();
         wsRef.current = ws;
       } catch (e) {
@@ -81,6 +82,10 @@ export default function Shifts() {
     { label: "Shift Definitions", icon: Clock },
     { label: "Shift Assignments", icon: Users },
   ];
+
+  const { user, loading: authLoading } = useAuth();
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" /></div>;
+  if (!user) return null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-[1600px] mx-auto space-y-8">
@@ -191,7 +196,7 @@ export default function Shifts() {
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
                   <Button variant="secondary" onClick={() => setIsShiftModalOpen(false)}>Cancel</Button>
-                  <Button onClick={() => { (async () => { try { if (currentShift) { await updateShift(currentShift.id, { name: shiftForm.name, start_time: shiftForm.startTime, end_time: shiftForm.endTime }); toast.success('Shift updated'); } else { await createShift({ id: String(Date.now()), name: shiftForm.name, start_time: shiftForm.startTime, end_time: shiftForm.endTime }); toast.success('Shift created'); } setShifts(Array.isArray(await listShifts()) ? await listShifts() : []); setIsShiftModalOpen(false); } catch { toast.error('Failed to save shift'); } })(); }}>
+                  <Button onClick={() => { (async () => { try { if (currentShift) { await updateShift(currentShift.id, { name: shiftForm.name, start_time: shiftForm.startTime, end_time: shiftForm.endTime }); toast.success('Shift updated'); } else { await createShift({ id: String(Date.now()), name: shiftForm.name, start_time: shiftForm.startTime, end_time: shiftForm.endTime }); toast.success('Shift created'); } const updated = await listShifts(); setShifts(Array.isArray(updated) ? updated : []); setIsShiftModalOpen(false); } catch { toast.error('Failed to save shift'); } })(); }}>
                     {currentShift ? 'Update' : 'Create'} Shift
                   </Button>
                 </div>
@@ -327,7 +332,7 @@ function AttendanceTable() {
           setRows(items || []);
         }
       } catch (e) {
-        console.warn('Failed to fetch recent attendance', e);
+        // ignore
       }
     }
     async function fetchEmployees() {

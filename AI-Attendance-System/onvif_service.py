@@ -23,7 +23,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # Config (make configurable via env)
-PIPELINE_API_URL = os.environ.get("PIPELINE_API_URL", "http://localhost:8081/cameras")
+PIPELINE_API_URL = os.environ.get("PIPELINE_API_URL", "http://localhost:8080/cameras")
 ONVIF_PORTS_TO_TRY = [80, 8080, 8899]
 WSDISCOVERY_TIMEOUT = float(os.environ.get("WSDISCOVERY_TIMEOUT", 4.0))
 HTTP_CHECK_TIMEOUT = float(os.environ.get("HTTP_CHECK_TIMEOUT", 1.2))

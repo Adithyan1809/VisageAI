@@ -6,6 +6,7 @@ import { BarChart2, Clock, Users, CalendarDays, Clock as ClockIcon, FileText } f
 import { toast } from 'sonner';
 import EmptyState from '../components/EmptyState';
 import { Line } from 'react-chartjs-2';
+import { useAuth } from '../lib/auth';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -77,7 +78,7 @@ export default function ShiftVisualization() {
           setAttendanceEvents(Array.isArray(items) ? items : []);
         }
       } catch (e) {
-        console.warn('Failed to load attendance for chart', e);
+        // ignore
       }
     })();
     return () => { mounted = false };
@@ -101,7 +102,7 @@ export default function ShiftVisualization() {
         setAssignments(Array.isArray(a) ? a : []);
         setEmployees(Array.isArray(e) ? e : []);
       } catch (err) {
-        console.warn('Failed to load shift visualization data', err);
+        // ignore
       } finally {
         if (mounted) setLoading(false);
       }
@@ -230,6 +231,10 @@ export default function ShiftVisualization() {
     URL.revokeObjectURL(url);
     toast.success('Assignments exported successfully');
   }
+
+  const { user, loading: authLoading } = useAuth();
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" /></div>;
+  if (!user) return null;
 
   return (
     <div className="p-6">
@@ -378,7 +383,9 @@ export default function ShiftVisualization() {
 
           {tooltip.visible && (
             <div style={{ position: 'fixed', left: tooltip.x, top: tooltip.y, zIndex: 50 }} className="pointer-events-none">
-              <div className="bg-slate-800 text-slate-100 px-3 py-1 rounded shadow-md text-sm">{tooltip.text}</div>
+              <div className="bg-slate-800 text-slate-100 px-3 py-2 rounded shadow-md text-sm space-y-0.5">
+                {(tooltip.lines || []).map((l, i) => <div key={i}>{l}</div>)}
+              </div>
             </div>
           )}
 

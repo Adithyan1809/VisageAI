@@ -2,10 +2,9 @@ import os
 import uvicorn
 import logging
 import asyncio
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 from dotenv import load_dotenv
 
@@ -166,3 +165,23 @@ async def create_performance_indexes():
             logger.info("✓ Performance indexes created/verified")
     except Exception as e:
         logger.warning(f"Startup index creation: {e}")
+
+    # Start background task: clean up expired/revoked refresh tokens daily
+    asyncio.create_task(_refresh_token_cleanup_loop())
+
+
+async def _refresh_token_cleanup_loop():
+    """Delete expired refresh tokens once per day to keep the table lean."""
+    while True:
+        try:
+            await asyncio.sleep(86400)  # 24 hours
+            with engine.begin() as conn:
+                result = conn.execute(
+                    text("DELETE FROM refresh_tokens WHERE expires_at < NOW() - INTERVAL '1 day'")
+                )
+                deleted = result.rowcount
+                if deleted:
+                    logger.info(f"✓ Cleaned up {deleted} expired refresh tokens")
+        except Exception as e:
+            logger.warning(f"Refresh token cleanup error: {e}")
+            await asyncio.sleep(3600)  # retry in 1h on error

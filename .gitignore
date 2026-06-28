@@ -81,3 +81,16 @@ check_*.py
 coverage/
 .coverage
 htmlcov/
+
+# ── Backend upload / temp dirs ────────────────
+backend/enrollment_temp/
+backend/uploads/
+AI-Attendance-System/enrollment_temp/
+
+# ── Stale scratch files ───────────────────────
+*.new
+*.bak
+*.orig
+
+# ── AI-Attendance-System local env ───────────
+AI-Attendance-System/.env

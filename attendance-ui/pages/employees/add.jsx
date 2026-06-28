@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import { createEmployee, listDepartments } from "../../lib/api";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 export default function AddEmployee() {
   const [name, setName] = useState("");
@@ -26,7 +27,7 @@ export default function AddEmployee() {
       const arr = data || []
       setDepartments(arr)
       if (arr && arr.length > 0) setDepartmentId(arr[0].id ?? arr[0].department_id ?? '')
-    }).catch((e) => console.error('Failed to load departments', e))
+    }).catch(() => { /* silently ignore — data loads as empty */ })
     return () => (mounted = false)
   }, [])
 
@@ -45,14 +46,14 @@ export default function AddEmployee() {
         department_id: departmentId || null,
       };
       await createEmployee(payload);
+      toast.success("Employee created successfully");
       router.push("/employees");
     } catch (err) {
-      console.error("Create failed", err);
       const srv = err?.response?.data
       if (srv && srv.errors) {
         setErrors(srv.errors)
       } else {
-        alert("Failed to create employee")
+        toast.error("Failed to create employee")
       }
     } finally {
       setLoading(false);

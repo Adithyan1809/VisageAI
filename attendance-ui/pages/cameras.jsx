@@ -554,7 +554,7 @@ export default function Cameras() {
         const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
         const ws = new WebSocket(`${API_BASE.replace("http", "ws")}/api/employees/ws`);
         ws.onmessage = () => { if (mounted) fetchAll(); };
-        ws.onclose = () => setTimeout(setupWs, 3000);
+        ws.onclose = () => { if (mounted) setTimeout(setupWs, 3000); };
         ws.onerror = () => ws.close();
         wsRef.current = ws;
       } catch { }
