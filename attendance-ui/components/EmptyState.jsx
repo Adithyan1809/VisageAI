@@ -16,7 +16,7 @@ export default function EmptyState({
         transition={{ duration: 0.3 }}
         className="w-16 h-16 mb-4 rounded-full bg-white/5 flex items-center justify-center border border-glass-border"
       >
-        <Icon className="w-8 h-8 opacity-40 text-white" />
+        <Icon className="w-8 h-8 opacity-40 text-foreground" />
       </motion.div>
       <motion.div
         initial={{ y: 10, opacity: 0 }}
@@ -24,7 +24,7 @@ export default function EmptyState({
         transition={{ duration: 0.3, delay: 0.1 }}
         className="text-center"
       >
-        <p className="text-white font-semibold mb-1 text-lg">{title}</p>
+        <p className="text-foreground font-semibold mb-1 text-lg">{title}</p>
         <p className="text-sm max-w-sm mx-auto text-muted mb-4">{description}</p>
         {action && (
           <div className="mt-4">

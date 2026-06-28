@@ -6,9 +6,9 @@ export default function Button({ variant = "primary", className = "", children, 
 
   const styles = {
     primary: "bg-brand-blue text-white shadow-glow-brand hover:bg-blue-500 hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] border border-blue-400/20",
-    secondary: "bg-glass-card border border-glass-border text-white hover:bg-glass-hover hover:border-white/20 backdrop-blur-md",
+    secondary: "bg-glass-card border border-glass-border text-foreground hover:bg-glass-hover hover:border-white/20 backdrop-blur-md",
     danger: "bg-danger text-white shadow-glow-danger hover:bg-red-500 border border-red-400/20",
-    ghost: "bg-transparent text-muted hover:text-white hover:bg-white/5",
+    ghost: "bg-transparent text-muted hover:text-foreground hover:bg-white/5",
   };
 
   return (

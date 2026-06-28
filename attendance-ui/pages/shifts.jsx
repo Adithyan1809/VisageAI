@@ -104,7 +104,7 @@ export default function Shifts() {
             className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
               tab === i
                 ? "bg-brand-blue text-white shadow-glow-brand"
-                : "text-muted hover:text-white hover:bg-white/5"
+                : "text-muted hover:text-foreground hover:bg-white/5"
             }`}
           >
             <Icon className="w-4 h-4" />
@@ -120,7 +120,7 @@ export default function Shifts() {
             <Card className="!p-0 overflow-hidden">
               <div className="px-6 py-4 border-b border-glass-border flex items-center gap-3">
                 <BarChart3 className="w-5 h-5 text-brand-cyan" />
-                <h3 className="text-base font-semibold text-white">Today's Attendance Stream</h3>
+                <h3 className="text-base font-semibold text-foreground">Today's Attendance Stream</h3>
               </div>
               <AttendanceTable />
             </Card>
@@ -131,7 +131,7 @@ export default function Shifts() {
           <motion.div key="shifts" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-white">Shift Definitions</h3>
+                <h3 className="text-lg font-semibold text-foreground">Shift Definitions</h3>
                 <p className="text-sm text-muted">{shifts.length} shifts configured</p>
               </div>
               <Button onClick={() => { setCurrentShift(null); setShiftForm({ name: '', startTime: '09:00', endTime: '17:00', color: '#3b82f6' }); setIsShiftModalOpen(true); }} className="flex items-center gap-2">
@@ -152,7 +152,7 @@ export default function Shifts() {
                       <div className="pl-4">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <h4 className="font-bold text-white text-lg">{shift.name}</h4>
+                            <h4 className="font-bold text-foreground text-lg">{shift.name}</h4>
                             <div className="flex items-center gap-1.5 text-sm text-muted mt-1">
                               <Clock className="w-3.5 h-3.5" />
                               {shift.start_time || shift.startTime || '—'} → {shift.end_time || shift.endTime || '—'}
@@ -162,7 +162,7 @@ export default function Shifts() {
                         </div>
                         <div className="flex items-center gap-2 pt-3 border-t border-glass-border">
                           <button onClick={() => { setCurrentShift(shift); setShiftForm({ name: shift.name, startTime: shift.start_time || shift.startTime, endTime: shift.end_time || shift.endTime, color: shift.color }); setIsShiftModalOpen(true); }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-muted hover:text-white hover:bg-white/10 rounded-lg transition-all">
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-muted hover:text-foreground hover:bg-white/10 rounded-lg transition-all">
                             <Edit className="w-3.5 h-3.5" /> Edit
                           </button>
                           <button onClick={async () => { if (!window.confirm(`Delete "${shift.name}"?`)) return; try { await deleteShift(shift.id); setShifts(await listShifts()); toast.success('Shift deleted successfully'); } catch { toast.error('Failed to delete shift'); } }}
@@ -183,11 +183,11 @@ export default function Shifts() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Start Time</label>
-                    <input type="time" value={shiftForm.startTime} onChange={(e) => setShiftForm({...shiftForm, startTime: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none" required />
+                    <input type="time" value={shiftForm.startTime} onChange={(e) => setShiftForm({...shiftForm, startTime: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-foreground focus:ring-2 focus:ring-brand-blue outline-none" required />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">End Time</label>
-                    <input type="time" value={shiftForm.endTime} onChange={(e) => setShiftForm({...shiftForm, endTime: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none" required />
+                    <input type="time" value={shiftForm.endTime} onChange={(e) => setShiftForm({...shiftForm, endTime: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-foreground focus:ring-2 focus:ring-brand-blue outline-none" required />
                   </div>
                 </div>
                 <div>
@@ -209,7 +209,7 @@ export default function Shifts() {
           <motion.div key="assignments" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-white">Shift Assignments</h3>
+                <h3 className="text-lg font-semibold text-foreground">Shift Assignments</h3>
                 <p className="text-sm text-muted">{assignments.length} active assignments</p>
               </div>
               <Button onClick={() => { const fe = employees?.[0]?.id || ''; const fs = shifts?.[0]?.id || ''; setAssignmentForm({ employeeId: fe, shiftId: fs, date: new Date().toISOString().split('T')[0] }); setIsAssignmentModalOpen(true); }} className="flex items-center gap-2">
@@ -245,13 +245,13 @@ export default function Shifts() {
                               <div className="w-9 h-9 rounded-full bg-brand-blue/20 border border-brand-blue/30 flex items-center justify-center text-xs font-bold text-brand-cyan">
                                 {(employee.name || '?').slice(0, 2).toUpperCase()}
                               </div>
-                              <span className="text-sm font-semibold text-white">{employee.name}</span>
+                              <span className="text-sm font-semibold text-foreground">{employee.name}</span>
                             </div>
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-2">
                               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: shift.color || '#3b82f6' }} />
-                              <span className="text-sm text-white">{shift.name}</span>
+                              <span className="text-sm text-foreground">{shift.name}</span>
                             </div>
                           </td>
                           <td className="px-4 py-4 text-sm text-muted">{shift.start_time || shift.startTime || '—'} – {shift.end_time || shift.endTime || '—'}</td>
@@ -259,7 +259,7 @@ export default function Shifts() {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2 justify-end">
                               <button onClick={() => { setAssignmentForm({ id: assignment.id, employeeId: assignment.employeeId, shiftId: assignment.shiftId, date: assignment.date }); setIsAssignmentModalOpen(true); }}
-                                className="p-2 rounded-lg hover:bg-white/10 text-muted hover:text-white transition-all"><Edit className="w-4 h-4" /></button>
+                                className="p-2 rounded-lg hover:bg-white/10 text-muted hover:text-foreground transition-all"><Edit className="w-4 h-4" /></button>
                               <button onClick={async () => { if (!confirm('Remove this assignment?')) return; try { await deleteAssignment(assignment.id); setAssignments(await listAssignments()); toast.success('Assignment removed'); } catch { toast.error('Failed to remove assignment'); } }}
                                 className="p-2 rounded-lg hover:bg-danger/10 text-muted hover:text-danger transition-all"><Trash2 className="w-4 h-4" /></button>
                             </div>
@@ -277,7 +277,7 @@ export default function Shifts() {
                 <div>
                   <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Employee</label>
                   <select value={assignmentForm.employeeId} onChange={(e) => setAssignmentForm({...assignmentForm, employeeId: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none appearance-none" required>
+                    className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-foreground focus:ring-2 focus:ring-brand-blue outline-none appearance-none" required>
                     <option value="">Select an employee</option>
                     {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                   </select>
@@ -285,7 +285,7 @@ export default function Shifts() {
                 <div>
                   <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Shift</label>
                   <select value={assignmentForm.shiftId} onChange={(e) => setAssignmentForm({...assignmentForm, shiftId: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none appearance-none" required>
+                    className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-foreground focus:ring-2 focus:ring-brand-blue outline-none appearance-none" required>
                     <option value="">Select a shift</option>
                     {shifts.map(s => <option key={s.id} value={s.id}>{s.name} ({s.start_time || s.startTime} – {s.end_time || s.endTime})</option>)}
                   </select>
@@ -293,7 +293,7 @@ export default function Shifts() {
                 <div>
                   <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Date</label>
                   <input type="date" value={assignmentForm.date} onChange={(e) => setAssignmentForm({...assignmentForm, date: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none" required />
+                    className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-foreground focus:ring-2 focus:ring-brand-blue outline-none" required />
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
                   <Button variant="secondary" onClick={() => setIsAssignmentModalOpen(false)}>Cancel</Button>
@@ -357,7 +357,7 @@ function AttendanceTable() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted">
         <BarChart3 className="w-12 h-12 opacity-20 mb-4" />
-        <p className="text-white font-semibold mb-1">No attendance records found</p>
+        <p className="text-foreground font-semibold mb-1">No attendance records found</p>
         <p className="text-sm">Records from the last 24 hours will appear here.</p>
       </div>
     );
@@ -394,7 +394,7 @@ function AttendanceTable() {
                     <div className="w-8 h-8 rounded-full bg-brand-blue/20 border border-brand-blue/30 flex items-center justify-center text-xs font-bold text-brand-cyan shrink-0">
                       {initials}
                     </div>
-                    <span className="text-sm font-semibold text-white">{displayName}</span>
+                    <span className="text-sm font-semibold text-foreground">{displayName}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3.5 text-sm font-mono text-brand-cyan/70">{r.camera_id || '—'}</td>

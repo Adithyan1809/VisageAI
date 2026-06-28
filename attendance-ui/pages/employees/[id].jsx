@@ -84,7 +84,7 @@ export default function EmployeeView() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
           <div>
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center text-xl font-semibold text-white">{(employee.name||employee.username||"?").charAt(0)}</div>
+              <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center text-xl font-semibold text-foreground">{(employee.name||employee.username||"?").charAt(0)}</div>
               <div>
                 <div className="text-lg font-semibold text-slate-100">{employee.name || employee.username || employee.id}</div>
                 <div className="text-sm text-slate-400">{employee.employee_code || ""}</div>

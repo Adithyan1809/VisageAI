@@ -3,11 +3,25 @@
 @tailwind utilities;
 
 :root {
+  /* Light Theme Variables */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --glass-card: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-hover: rgba(255, 255, 255, 0.9);
+  --muted: #64748b;
+  --bg-gradient: radial-gradient(circle at 50% -20%, #e0f2fe 0%, #f8fafc 40%);
+}
+
+.dark {
+  /* Dark Theme Variables */
   --background: #040812;
+  --foreground: #e6eef8;
   --glass-card: rgba(10, 15, 30, 0.4);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-hover: rgba(20, 30, 50, 0.6);
   --muted: #8b9bb4;
+  --bg-gradient: radial-gradient(circle at 50% -20%, #1e3a8a 0%, #040812 40%);
 }
 
 @layer base {
@@ -16,10 +30,11 @@
   }
 
   body {
-    @apply antialiased text-gray-100;
-    background: radial-gradient(circle at 50% -20%, #1e3a8a 0%, #040812 40%);
+    @apply antialiased transition-colors duration-300;
+    background: var(--bg-gradient);
+    background-color: var(--background);
     background-attachment: fixed;
-    color: #e6eef8;
+    color: var(--foreground);
     /* Font is handled via next/font in _app.jsx */
   }
 

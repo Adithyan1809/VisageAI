@@ -39,12 +39,12 @@ export default function Modal({ isOpen, onClose, title, children }) {
               className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transform rounded-2xl shadow-2xl glass-panel sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold leading-6 text-white">
+                <h3 className="text-xl font-semibold leading-6 text-foreground">
                   {title}
                 </h3>
                 <button
                   onClick={onClose}
-                  className="text-muted hover:text-white transition-colors"
+                  className="text-muted hover:text-foreground transition-colors"
                 >
                   <span className="sr-only">Close</span>
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

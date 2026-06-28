@@ -15,7 +15,7 @@ function AvatarBubble({ name, size = "md" }) {
   const colorIdx = (name || "?").charCodeAt(0) % colors.length;
   const sz = size === "sm" ? "w-8 h-8 text-xs" : "w-10 h-10 text-sm";
   return (
-    <div className={`${sz} rounded-full bg-gradient-to-br ${colors[colorIdx]} flex items-center justify-center font-bold text-white shadow-md shrink-0`}>
+    <div className={`${sz} rounded-full bg-gradient-to-br ${colors[colorIdx]} flex items-center justify-center font-bold text-foreground shadow-md shrink-0`}>
       {initials}
     </div>
   );
@@ -161,7 +161,7 @@ export default function Employees() {
           <p className="text-muted mt-1">{employees.length} team members registered in the system.</p>
         </div>
         <div className="flex items-center gap-3">
-          <label htmlFor="employee-import" className="inline-flex items-center gap-2 px-5 py-2.5 bg-glass-card border border-glass-border hover:border-white/20 text-white rounded-xl text-sm font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 backdrop-blur-md">
+          <label htmlFor="employee-import" className="inline-flex items-center gap-2 px-5 py-2.5 bg-glass-card border border-glass-border hover:border-white/20 text-foreground rounded-xl text-sm font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 backdrop-blur-md">
             <Upload className="w-4 h-4" /> {importing ? 'Importing…' : 'Import CSV'}
           </label>
           <input id="employee-import" type="file" accept="text/csv" className="hidden" onChange={async (e) => {
@@ -210,14 +210,14 @@ export default function Employees() {
             <input
               value={query} onChange={e => setQuery(e.target.value)}
               placeholder="Search name, email or code…"
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/30 border border-glass-border text-white placeholder:text-muted text-sm focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue outline-none transition-all"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/30 border border-glass-border text-foreground placeholder:text-muted text-sm focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue outline-none transition-all"
             />
           </div>
 
           {/* Department Filter */}
           <div className="relative">
             <select value={filterDept} onChange={e => setFilterDept(e.target.value)}
-              className="pl-4 pr-8 py-2.5 rounded-xl bg-black/30 border border-glass-border text-sm text-white appearance-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue outline-none transition-all cursor-pointer">
+              className="pl-4 pr-8 py-2.5 rounded-xl bg-black/30 border border-glass-border text-sm text-foreground appearance-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue outline-none transition-all cursor-pointer">
               <option value="">All Departments</option>
               {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
@@ -226,12 +226,12 @@ export default function Employees() {
 
           {/* Role Filter */}
           <input value={filterRole} onChange={e => setFilterRole(e.target.value)} placeholder="Filter by role…"
-            className="px-4 py-2.5 rounded-xl bg-black/30 border border-glass-border text-white placeholder:text-muted text-sm w-36 focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue outline-none transition-all" />
+            className="px-4 py-2.5 rounded-xl bg-black/30 border border-glass-border text-foreground placeholder:text-muted text-sm w-36 focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue outline-none transition-all" />
 
           {/* Status Filter */}
           <div className="relative">
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              className="pl-4 pr-8 py-2.5 rounded-xl bg-black/30 border border-glass-border text-sm text-white appearance-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue outline-none transition-all cursor-pointer">
+              className="pl-4 pr-8 py-2.5 rounded-xl bg-black/30 border border-glass-border text-sm text-foreground appearance-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue outline-none transition-all cursor-pointer">
               <option value="">Any status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -242,13 +242,13 @@ export default function Employees() {
 
           {hasFilters && (
             <button onClick={() => { setQuery(''); setFilterDept(''); setFilterRole(''); setFilterStatus(''); }}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm text-muted hover:text-white hover:bg-white/5 transition-all border border-glass-border">
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm text-muted hover:text-foreground hover:bg-white/5 transition-all border border-glass-border">
               <X className="w-3.5 h-3.5" /> Clear
             </button>
           )}
 
           <div className="ml-auto text-sm text-muted font-medium">
-            <span className="text-white font-semibold">{filtered.length}</span> / {employees.length} employees
+            <span className="text-foreground font-semibold">{filtered.length}</span> / {employees.length} employees
           </div>
         </div>
       </Card>
@@ -298,7 +298,7 @@ export default function Employees() {
                         <div className="flex items-center gap-3">
                           <AvatarBubble name={name} />
                           <div>
-                            <div className="text-sm font-semibold text-white">{name}</div>
+                            <div className="text-sm font-semibold text-foreground">{name}</div>
                             <div className="text-xs text-muted">{emp.employee_code || emp.id}</div>
                           </div>
                         </div>
@@ -318,7 +318,7 @@ export default function Employees() {
                           <Link href={`/employees/${emp.id}`} className="inline-flex items-center justify-center p-2 rounded-lg bg-white/5 border border-glass-border hover:bg-brand-blue/20 hover:border-brand-blue/30 text-muted hover:text-white transition-all cursor-pointer" title="View profile">
                             <Eye className="w-4 h-4" />
                           </Link>
-                          <Link href={`/employees/${emp.id}/edit`} className="inline-flex items-center justify-center p-2 rounded-lg bg-white/5 border border-glass-border hover:bg-purple-500/20 hover:border-purple-500/30 text-muted hover:text-white transition-all cursor-pointer" title="Edit">
+                          <Link href={`/employees/${emp.id}/edit`} className="inline-flex items-center justify-center p-2 rounded-lg bg-white/5 border border-glass-border hover:bg-purple-500/20 hover:border-purple-500/30 text-muted hover:text-foreground transition-all cursor-pointer" title="Edit">
                             <Edit className="w-4 h-4" />
                           </Link>
                           <button

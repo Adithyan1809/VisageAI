@@ -129,7 +129,7 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
                   <Camera className="w-5 h-5 text-brand-cyan" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">
+                  <h2 className="text-lg font-bold text-foreground">
                     {editCamera ? "Edit Camera" : "Add IP Camera"}
                   </h2>
                   <p className="text-xs text-slate-400">
@@ -139,7 +139,7 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
               </div>
               <button
                 onClick={onClose}
-                className="text-slate-400 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors"
+                className="text-slate-400 hover:text-foreground hover:bg-white/10 p-2 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -161,7 +161,7 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
                       value={form.name}
                       onChange={set("name")}
                       placeholder="e.g. Gate A — Main Entrance"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan/40 transition-all"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder-slate-500 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan/40 transition-all"
                       required
                     />
                   </div>
@@ -172,7 +172,7 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
                         id="cam-type"
                         value={form.camera_type}
                         onChange={set("camera_type")}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-cyan transition-all appearance-none"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-brand-cyan transition-all appearance-none"
                       >
                         {CAMERA_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
@@ -183,7 +183,7 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
                         id="cam-status"
                         value={form.status}
                         onChange={set("status")}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-cyan transition-all appearance-none"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-brand-cyan transition-all appearance-none"
                       >
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
@@ -207,7 +207,7 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
                       value={form.ip_address}
                       onChange={handleIpChange}
                       placeholder="192.168.1.64"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan/40 transition-all"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground font-mono placeholder-slate-500 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan/40 transition-all"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -218,7 +218,7 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
                         value={form.username}
                         onChange={set("username")}
                         placeholder="admin"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-brand-cyan transition-all"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground font-mono placeholder-slate-500 focus:outline-none focus:border-brand-cyan transition-all"
                       />
                     </div>
                     <div>
@@ -230,12 +230,12 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
                           value={form.password}
                           onChange={set("password")}
                           placeholder="••••••••"
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-11 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-brand-cyan transition-all"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-11 text-foreground font-mono placeholder-slate-500 focus:outline-none focus:border-brand-cyan transition-all"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPass(v => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-foreground"
                         >
                           {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -261,7 +261,7 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
                         value={form.rtsp_url}
                         onChange={set("rtsp_url")}
                         placeholder="rtsp://admin:pass@192.168.1.64:554/stream1"
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-sm placeholder-slate-500 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan/40 transition-all"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground font-mono text-sm placeholder-slate-500 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan/40 transition-all"
                       />
                       <button
                         type="button"
@@ -318,7 +318,7 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
                       id="cam-zone"
                       value={form.zone_id}
                       onChange={set("zone_id")}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-cyan transition-all appearance-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-brand-cyan transition-all appearance-none"
                     >
                       <option value="">Unassigned</option>
                       {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
@@ -332,7 +332,7 @@ function CameraDrawer({ open, onClose, onSaved, editCamera, zones, nvrs }) {
                       id="cam-nvr"
                       value={form.nvr_dvr_id}
                       onChange={set("nvr_dvr_id")}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-cyan transition-all appearance-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-brand-cyan transition-all appearance-none"
                     >
                       <option value="">None (Direct IP)</option>
                       {nvrs.map(n => <option key={n.id} value={n.id}>{n.name} ({n.ip_address})</option>)}
@@ -422,7 +422,7 @@ function CameraCard({ cam, onEdit, onDelete, index }) {
           </div>
 
           {/* Name */}
-          <h3 className="text-base font-bold text-white mb-0.5 truncate" title={cam.name}>{cam.name}</h3>
+          <h3 className="text-base font-bold text-foreground mb-0.5 truncate" title={cam.name}>{cam.name}</h3>
           <p className="text-xs font-mono text-slate-400 mb-4 truncate">{cam.id}</p>
 
           {/* Meta */}
@@ -453,7 +453,7 @@ function CameraCard({ cam, onEdit, onDelete, index }) {
           <button
             id={`btn-edit-cam-${cam.id}`}
             onClick={() => onEdit(cam)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold text-slate-300 border border-white/10 hover:bg-white/5 hover:text-white transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold text-slate-300 border border-white/10 hover:bg-white/5 hover:text-foreground transition-all"
           >
             <Edit className="w-3.5 h-3.5" /> Edit
           </button>
@@ -498,9 +498,9 @@ function DeleteModal({ camera, onConfirm, onCancel }) {
           <div className="w-12 h-12 rounded-xl bg-red-500/15 flex items-center justify-center mx-auto mb-4">
             <Trash2 className="w-6 h-6 text-red-400" />
           </div>
-          <h3 className="text-lg font-bold text-white text-center mb-1">Delete Camera?</h3>
+          <h3 className="text-lg font-bold text-foreground text-center mb-1">Delete Camera?</h3>
           <p className="text-sm text-slate-400 text-center mb-6">
-            This will permanently remove <span className="text-white font-semibold">{camera.name}</span> from the system.
+            This will permanently remove <span className="text-foreground font-semibold">{camera.name}</span> from the system.
           </p>
           <div className="flex gap-3">
             <button
@@ -631,7 +631,7 @@ export default function Cameras() {
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Total",    value: cameras.length, color: "text-white",         bg: "bg-white/5" },
+          { label: "Total",    value: cameras.length, color: "text-foreground",         bg: "bg-white/5" },
           { label: "Online",   value: activeCount,    color: "text-emerald-400",   bg: "bg-emerald-500/10" },
           { label: "Offline",  value: inactiveCount,  color: "text-red-400",       bg: "bg-red-500/10" },
         ].map(s => (
@@ -651,7 +651,7 @@ export default function Cameras() {
             className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${
               filter === f
                 ? "bg-brand-blue text-white shadow-[0_0_12px_rgba(59,130,246,0.4)]"
-                : "text-slate-400 hover:text-white hover:bg-white/5"
+                : "text-slate-400 hover:text-foreground hover:bg-white/5"
             }`}
           >
             {f === "all" ? `All (${cameras.length})` : f === "active" ? `Online (${activeCount})` : `Offline (${inactiveCount})`}

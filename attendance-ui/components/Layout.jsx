@@ -7,7 +7,7 @@ export default function Layout({ children }) {
   const currentRoute = router.pathname;
 
   return (
-    <div className="flex min-h-screen text-white">
+    <div className="flex min-h-screen">
       {/* FIXED SIDEBAR */}
       <div className="fixed left-0 top-0 h-full w-64 z-40">
         <Sidebar active={currentRoute} />

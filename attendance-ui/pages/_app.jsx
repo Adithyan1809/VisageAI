@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { Loader2 } from 'lucide-react';
+import { ThemeProvider } from 'next-themes';
 
 // Load the Outfit font
 const outfit = Outfit({ 
@@ -98,10 +99,10 @@ function RouteGuard({ children, route }) {
       <div className="min-h-screen flex items-center justify-center bg-[#050810]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-blue to-brand-cyan flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.4)]">
-            <span className="text-2xl font-black text-white">V</span>
+            <span className="text-2xl font-black text-foreground">V</span>
           </div>
           <Loader2 className="w-5 h-5 text-brand-cyan animate-spin" />
-          <p className="text-xs text-white/30 tracking-wider uppercase">Initializing session…</p>
+          <p className="text-xs text-foreground/30 tracking-wider uppercase">Initializing session…</p>
         </div>
       </div>
     );
@@ -119,53 +120,53 @@ export default function App({ Component, pageProps, router }) {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <div className={`${outfit.variable} font-sans`}>
-          <Toaster 
-            theme="dark" 
-            position="top-right" 
-            toastOptions={{
-              className: 'bg-glass-card/90 backdrop-blur-xl border-glass-border text-white',
-              style: {
-                background: 'rgba(255, 255, 255, 0.03)',
-                backdropFilter: 'blur(16px)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#fff',
-              }
-            }} 
-          />
-          <RouteGuard route={router.pathname}>
-            {isLoginPage ? (
-              // Login page: no sidebar/topbar
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={router.route}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Component {...pageProps} />
-                </motion.div>
-              </AnimatePresence>
-            ) : (
-              // All other pages: wrapped in Layout (sidebar + topbar)
-              <Layout>
+        <ThemeProvider attribute="class" defaultTheme="dark">
+          <div className={`${outfit.variable} font-sans`}>
+            <Toaster 
+              position="top-right" 
+              toastOptions={{
+                className: 'bg-glass-card/90 backdrop-blur-xl border-glass-border text-foreground',
+                style: {
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--foreground)',
+                }
+              }} 
+            />
+            <RouteGuard route={router.pathname}>
+              {isLoginPage ? (
+                // Login page: no sidebar/topbar
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={router.route}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className="h-full"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
                   >
                     <Component {...pageProps} />
                   </motion.div>
                 </AnimatePresence>
-              </Layout>
-            )}
-          </RouteGuard>
-        </div>
+              ) : (
+                // All other pages: wrapped in Layout (sidebar + topbar)
+                <Layout>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={router.route}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="h-full"
+                    >
+                      <Component {...pageProps} />
+                    </motion.div>
+                  </AnimatePresence>
+                </Layout>
+              )}
+            </RouteGuard>
+          </div>
+        </ThemeProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

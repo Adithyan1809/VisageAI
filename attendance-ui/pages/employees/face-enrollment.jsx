@@ -349,7 +349,7 @@ export default function FaceEnrollment() {
             <div className="w-16 h-16 mx-auto bg-brand-blue/10 rounded-2xl flex items-center justify-center mb-6 shadow-glow-brand">
               <ScanFace className="w-8 h-8 text-brand-cyan" />
             </div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Identity Enrollment</h2>
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">Identity Enrollment</h2>
             <p className="text-muted mt-2 max-w-sm mx-auto text-sm">
               Center your face in the HUD. The system will auto-capture {TOTAL_FRAMES} distinct signatures.
             </p>
@@ -366,7 +366,7 @@ export default function FaceEnrollment() {
                 value={selectedEmployeeId}
                 onChange={e => setSelected(e.target.value)}
                 disabled={isRunning || stage === "processing"}
-                className="w-full pl-12 pr-4 py-3.5 bg-glass-card border border-glass-border rounded-xl text-white font-medium focus:ring-2 focus:ring-brand-blue outline-none transition-all appearance-none"
+                className="w-full pl-12 pr-4 py-3.5 bg-glass-card border border-glass-border rounded-xl text-foreground font-medium focus:ring-2 focus:ring-brand-blue outline-none transition-all appearance-none"
               >
                 <option value="">-- Select Employee --</option>
                 {employees.map(emp => (
@@ -458,8 +458,8 @@ export default function FaceEnrollment() {
                 {/* Processing overlay */}
                 {stage === "processing" && (
                   <div className="absolute inset-0 bg-brand-blue/80 backdrop-blur-xl flex flex-col items-center justify-center">
-                    <Loader2 className="w-12 h-12 text-white animate-spin mb-3" />
-                    <span className="text-white font-bold text-xs tracking-[0.2em]">ANALYZING...</span>
+                    <Loader2 className="w-12 h-12 text-foreground animate-spin mb-3" />
+                    <span className="text-foreground font-bold text-xs tracking-[0.2em]">ANALYZING...</span>
                   </div>
                 )}
 
@@ -467,9 +467,9 @@ export default function FaceEnrollment() {
                 {stage === "complete" && (
                   <div className="absolute inset-0 bg-success/80 backdrop-blur-xl flex flex-col items-center justify-center">
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-                      <CheckCircle className="w-16 h-16 text-white mb-3" />
+                      <CheckCircle className="w-16 h-16 text-foreground mb-3" />
                     </motion.div>
-                    <span className="text-white font-black text-sm tracking-[0.2em]">ENROLLED</span>
+                    <span className="text-foreground font-black text-sm tracking-[0.2em]">ENROLLED</span>
                   </div>
                 )}
               </div>
@@ -559,7 +559,7 @@ export default function FaceEnrollment() {
                   </Button>
                   <Button
                     variant="ghost"
-                    className="w-full py-3 rounded-xl font-semibold text-muted hover:text-white hover:bg-white/5"
+                    className="w-full py-3 rounded-xl font-semibold text-muted hover:text-foreground hover:bg-white/5"
                     onClick={stopCamera}
                   >
                     Power Down

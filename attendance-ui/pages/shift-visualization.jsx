@@ -286,8 +286,8 @@ export default function ShiftVisualization() {
               <h3 className="text-lg font-semibold">24-hour Shift Timeline</h3>
               <div className="flex items-center space-x-2">
                 <label className="text-sm text-slate-400">Date</label>
-                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="px-4 py-2 rounded-xl bg-black/40 border border-glass-border text-white outline-none appearance-none" />
-                <input placeholder="Search shifts..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="ml-3 px-4 py-2 rounded-xl bg-black/40 border border-glass-border text-white outline-none text-sm" />
+                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="px-4 py-2 rounded-xl bg-black/40 border border-glass-border text-foreground outline-none appearance-none" />
+                <input placeholder="Search shifts..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="ml-3 px-4 py-2 rounded-xl bg-black/40 border border-glass-border text-foreground outline-none text-sm" />
                 <label className="ml-2 text-sm text-slate-400 flex items-center"><input type="checkbox" className="mr-2 rounded border-glass-border bg-black/40" checked={onlyAssigned} onChange={(e) => setOnlyAssigned(e.target.checked)} />Only show assigned</label>
               </div>
             </div>
@@ -392,7 +392,7 @@ export default function ShiftVisualization() {
           <Card className="mt-4">
             <h3 className="text-lg font-semibold mb-3">Assignments (selected date)</h3>
             <div className="flex items-center justify-end mb-2 space-x-2">
-              <button onClick={exportAssignmentsCSV} className="px-3 py-1 bg-slate-700 text-white rounded text-sm">Export CSV</button>
+              <button onClick={exportAssignmentsCSV} className="px-3 py-1 bg-slate-700 text-foreground rounded text-sm">Export CSV</button>
               <button onClick={() => window.print()} className="px-3 py-1 border rounded text-sm">Print</button>
             </div>
             {assignmentsForDate.length === 0 ? (

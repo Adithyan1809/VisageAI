@@ -12,6 +12,7 @@ module.exports = {
       },
       colors: {
         background: "var(--background)",
+        foreground: "var(--foreground)",
         "glass-card": "var(--glass-card)",
         "glass-border": "var(--glass-border)",
         brand: {

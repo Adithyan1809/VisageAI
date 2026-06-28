@@ -4,7 +4,7 @@
       <div className="flex items-start justify-between gap-4">
         <div>
           {title && (
-            <h2 className="text-2xl font-semibold tracking-tight text-white">{title}</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
           )}
           {subtitle && (
             <p className="text-sm muted mt-1">{subtitle}</p>

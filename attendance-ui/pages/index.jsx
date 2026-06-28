@@ -393,7 +393,7 @@ export default function Home() {
           <div className="flex items-center justify-between relative z-10">
             <div>
               <p className="text-sm font-medium text-brand-cyan">Total Enrolled</p>
-              <div className="text-3xl font-bold text-white mt-1">{totalEmployees ?? '—'}</div>
+              <div className="text-3xl font-bold text-foreground mt-1">{totalEmployees ?? '—'}</div>
             </div>
             <div className="w-12 h-12 rounded-xl bg-brand-blue/20 flex items-center justify-center text-brand-blue shadow-[0_0_15px_rgba(59,130,246,0.3)]">
               <Users className="w-6 h-6" />
@@ -406,7 +406,7 @@ export default function Home() {
           <div className="flex items-center justify-between relative z-10">
             <div>
               <p className="text-sm font-medium text-success">Present Today</p>
-              <div className="text-3xl font-bold text-white mt-1">{presentCount}</div>
+              <div className="text-3xl font-bold text-foreground mt-1">{presentCount}</div>
             </div>
             <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center text-success shadow-[0_0_15px_rgba(16,185,129,0.3)]">
               <CheckCircle2 className="w-6 h-6" />
@@ -419,7 +419,7 @@ export default function Home() {
           <div className="flex items-center justify-between relative z-10">
             <div>
               <p className="text-sm font-medium text-purple-400">Active Cameras</p>
-              <div className="text-3xl font-bold text-white mt-1">{uniqueCameras}</div>
+              <div className="text-3xl font-bold text-foreground mt-1">{uniqueCameras}</div>
             </div>
             <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
               <CameraIcon className="w-6 h-6" />
@@ -432,7 +432,7 @@ export default function Home() {
           <div className="flex items-center justify-between relative z-10">
             <div>
               <p className="text-sm font-medium text-danger">Unknown Faces</p>
-              <div className="text-3xl font-bold text-white mt-1">{alerts.length}</div>
+              <div className="text-3xl font-bold text-foreground mt-1">{alerts.length}</div>
             </div>
             <div className="w-12 h-12 rounded-xl bg-danger/20 flex items-center justify-center text-danger shadow-[0_0_15px_rgba(239,68,68,0.3)]">
               <AlertCircle className="w-6 h-6" />
@@ -445,7 +445,7 @@ export default function Home() {
         <div className="space-y-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-muted mb-1.5">File Format</label>
-            <select value={exportFormat} onChange={e => setExportFormat(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none transition-all">
+            <select value={exportFormat} onChange={e => setExportFormat(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-glass-border text-foreground focus:ring-2 focus:ring-brand-blue outline-none transition-all">
               <option value="csv">CSV (Spreadsheet)</option>
               <option value="json">JSON (Raw Data)</option>
             </select>
@@ -453,15 +453,15 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-muted mb-1.5">From Date</label>
-              <input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none" />
+              <input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-glass-border text-foreground focus:ring-2 focus:ring-brand-blue outline-none" />
             </div>
             <div>
               <label className="block text-sm font-medium text-muted mb-1.5">To Date</label>
-              <input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-glass-border text-white focus:ring-2 focus:ring-brand-blue outline-none" />
+              <input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-glass-border text-foreground focus:ring-2 focus:ring-brand-blue outline-none" />
             </div>
           </div>
           <div className="flex items-center justify-end gap-3 mt-8">
-            <button onClick={() => setExportModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-medium text-muted hover:text-white hover:bg-white/5 transition-colors">Cancel</button>
+            <button onClick={() => setExportModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-medium text-muted hover:text-foreground hover:bg-white/5 transition-colors">Cancel</button>
             <button onClick={() => { exportAttendance({ format: exportFormat, from: exportFrom || null, to: exportTo || null }); setExportModalOpen(false); }} className="px-5 py-2.5 bg-brand-blue hover:bg-blue-500 text-white rounded-xl text-sm font-semibold shadow-glow-brand transition-all hover:scale-105 active:scale-95">Download File</button>
           </div>
         </div>
@@ -470,7 +470,7 @@ export default function Home() {
       {/* Main Feed */}
       <Card className="!p-0 overflow-hidden">
         <div className="p-6 border-b border-glass-border flex items-center justify-between">
-          <h3 className="text-xl font-semibold text-white">Live Activity Stream</h3>
+          <h3 className="text-xl font-semibold text-foreground">Live Activity Stream</h3>
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
@@ -516,7 +516,7 @@ export default function Home() {
                       className="hover:bg-white/[0.02] transition-colors group"
                     > 
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-white font-medium">{formatAbsolute(ev).split(', ')[1]}</div>
+                        <div className="text-sm text-foreground font-medium">{formatAbsolute(ev).split(', ')[1]}</div>
                         <div className="text-xs text-muted">{relativeTime(ev)}</div>
                       </td>
                       <td className="px-6 py-4">
@@ -525,7 +525,7 @@ export default function Home() {
                             {initials}
                           </div>
                           <div>
-                            <div className="text-sm font-semibold text-white">{name}</div>
+                            <div className="text-sm font-semibold text-foreground">{name}</div>
                             <div className="text-xs text-muted flex items-center gap-1">
                               {ev.attendance_marked ? (
                                 <span className="text-success flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Marked Present</span>

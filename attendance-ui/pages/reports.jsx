@@ -283,21 +283,21 @@ export default function Reports() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
               <div>
                 <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2 block">Template</label>
-                <select value={template} onChange={(e)=>setTemplate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-white outline-none appearance-none">
+                <select value={template} onChange={(e)=>setTemplate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-foreground outline-none appearance-none">
                   {templates.map(t=> <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2 block">From</label>
-                <input type="date" value={startDate} onChange={(e)=>setStartDate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-white outline-none" />
+                <input type="date" value={startDate} onChange={(e)=>setStartDate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-foreground outline-none" />
               </div>
               <div>
                 <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2 block">To</label>
-                <input type="date" value={endDate} onChange={(e)=>setEndDate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-white outline-none" />
+                <input type="date" value={endDate} onChange={(e)=>setEndDate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-foreground outline-none" />
               </div>
               <div>
                 <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2 block">Format</label>
-                <select value={format} onChange={(e)=>setFormat(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-white outline-none appearance-none">
+                <select value={format} onChange={(e)=>setFormat(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-black/40 border border-glass-border text-foreground outline-none appearance-none">
                   <option value="csv">CSV</option>
                   <option value="pdf">PDF</option>
                 </select>
@@ -308,12 +308,12 @@ export default function Reports() {
               <div className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-slate-400" />
                 <div className="text-sm text-slate-400 font-medium">Schedule: </div>
-                <select value={scheduleRecurrence} onChange={(e)=>setScheduleRecurrence(e.target.value)} className="px-4 py-2 rounded-xl bg-black/40 border border-glass-border text-white text-sm appearance-none outline-none">
+                <select value={scheduleRecurrence} onChange={(e)=>setScheduleRecurrence(e.target.value)} className="px-4 py-2 rounded-xl bg-black/40 border border-glass-border text-foreground text-sm appearance-none outline-none">
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
                 </select>
-                <input type="time" value={scheduleTime} onChange={(e)=>setScheduleTime(e.target.value)} className="ml-2 px-4 py-2 rounded-xl bg-black/40 border border-glass-border text-white outline-none" />
+                <input type="time" value={scheduleTime} onChange={(e)=>setScheduleTime(e.target.value)} className="ml-2 px-4 py-2 rounded-xl bg-black/40 border border-glass-border text-foreground outline-none" />
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="secondary" onClick={()=>scheduleReport()}><PlusCircle className="w-4 h-4 mr-2" />Schedule</Button>
