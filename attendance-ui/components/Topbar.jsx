@@ -101,7 +101,7 @@ export default function Topbar({ route }) {
           <button
             id="topbar-user-menu-btn"
             onClick={() => setShowUserMenu((v) => !v)}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/5 transition-all duration-200 border border-transparent hover:border-white/10"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-foreground/5 transition-all duration-200 border border-transparent hover:border-foreground/10"
           >
             {/* Avatar */}
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-blue/80 to-brand-cyan/80 flex items-center justify-center text-foreground font-bold text-xs border border-foreground/10 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
@@ -124,10 +124,10 @@ export default function Topbar({ route }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute right-0 top-full mt-2 w-64 bg-[#0d1526]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50"
+                className="absolute right-0 top-full mt-2 w-64 bg-glass-card backdrop-blur-xl border border-glass-border rounded-2xl shadow-2xl overflow-hidden z-50"
               >
                 {/* User info header */}
-                <div className="px-4 py-4 border-b border-white/8 bg-brand-blue/5">
+                <div className="px-4 py-4 border-b border-glass-border bg-brand-blue/5">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-blue/80 to-brand-cyan/80 flex items-center justify-center text-foreground font-bold text-sm border border-foreground/10">
                       {initials}
@@ -147,7 +147,7 @@ export default function Topbar({ route }) {
                 <div className="p-2">
                   <button
                     id="topbar-profile-btn"
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted hover:text-foreground hover:bg-white/5 transition-all text-left"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted hover:text-foreground hover:bg-foreground/5 transition-all text-left"
                     onClick={() => { setShowUserMenu(false); router.push("/preferences"); }}
                   >
                     <User className="w-4 h-4" />
@@ -156,7 +156,7 @@ export default function Topbar({ route }) {
 
                   <button
                     id="topbar-change-password-btn"
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted hover:text-foreground hover:bg-white/5 transition-all text-left"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted hover:text-foreground hover:bg-foreground/5 transition-all text-left"
                     onClick={() => { setShowUserMenu(false); router.push("/preferences?tab=security"); }}
                   >
                     <KeyRound className="w-4 h-4" />
@@ -165,7 +165,7 @@ export default function Topbar({ route }) {
                 </div>
 
                 {/* Logout */}
-                <div className="p-2 border-t border-white/8">
+                <div className="p-2 border-t border-glass-border">
                   <button
                     id="topbar-logout-btn"
                     onClick={handleLogout}
