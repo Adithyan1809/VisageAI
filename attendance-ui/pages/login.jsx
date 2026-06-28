@@ -117,7 +117,7 @@ export default function LoginPage() {
                 transition={{ delay: 0.1, duration: 0.4 }}
                 className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-blue to-brand-cyan shadow-[0_0_30px_rgba(6,182,212,0.4)] mb-5"
               >
-                <span className="text-2xl font-black text-foreground">V</span>
+                <span className="text-2xl font-black text-white">V</span>
               </motion.div>
 
               <motion.div
@@ -125,7 +125,7 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.4 }}
               >
-                <h1 className="text-2xl font-bold text-foreground tracking-tight">VisageAI</h1>
+                <h1 className="text-2xl font-bold text-white tracking-tight">VisageAI</h1>
                 <p className="text-xs text-brand-cyan font-semibold uppercase tracking-widest mt-1">
                   Enterprise Admin Portal
                 </p>
@@ -138,7 +138,7 @@ export default function LoginPage() {
                 className="flex items-center justify-center gap-2 mt-4 px-4 py-2 rounded-full bg-white/5 border border-white/10 w-fit mx-auto"
               >
                 <Shield className="w-3.5 h-3.5 text-brand-cyan" />
-                <span className="text-xs text-muted">Restricted Access — Authorized Personnel Only</span>
+                <span className="text-xs text-slate-400">Restricted Access — Authorized Personnel Only</span>
               </motion.div>
             </div>
 
@@ -169,11 +169,11 @@ export default function LoginPage() {
             >
               {/* Username */}
               <div>
-                <label htmlFor="login-username" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">
+                <label htmlFor="login-username" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                   Username
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   <input
                     id="login-username"
                     type="text"
@@ -185,7 +185,7 @@ export default function LoginPage() {
                       setFieldErrors((fe) => ({ ...fe, username: "" }));
                     }}
                     placeholder="Enter your username"
-                    className={`w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border text-foreground placeholder-white/20 text-sm transition-all duration-200 outline-none focus:bg-white/8 focus:border-brand-cyan/60 focus:shadow-[0_0_0_3px_rgba(6,182,212,0.1)] ${
+                    className={`w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border text-white placeholder-white/20 text-sm transition-all duration-200 outline-none focus:bg-white/8 focus:border-brand-cyan/60 focus:shadow-[0_0_0_3px_rgba(6,182,212,0.1)] ${
                       fieldErrors.username ? "border-red-500/50" : "border-white/10"
                     }`}
                   />
@@ -197,11 +197,11 @@ export default function LoginPage() {
 
               {/* Password */}
               <div>
-                <label htmlFor="login-password" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">
+                <label htmlFor="login-password" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   <input
                     id="login-password"
                     type={showPassword ? "text" : "password"}
@@ -212,7 +212,7 @@ export default function LoginPage() {
                       setFieldErrors((fe) => ({ ...fe, password: "" }));
                     }}
                     placeholder="Enter your password"
-                    className={`w-full pl-10 pr-12 py-3 rounded-xl bg-white/5 border text-foreground placeholder-white/20 text-sm transition-all duration-200 outline-none focus:bg-white/8 focus:border-brand-cyan/60 focus:shadow-[0_0_0_3px_rgba(6,182,212,0.1)] ${
+                    className={`w-full pl-10 pr-12 py-3 rounded-xl bg-white/5 border text-white placeholder-white/20 text-sm transition-all duration-200 outline-none focus:bg-white/8 focus:border-brand-cyan/60 focus:shadow-[0_0_0_3px_rgba(6,182,212,0.1)] ${
                       fieldErrors.password ? "border-red-500/50" : "border-white/10"
                     }`}
                   />
@@ -220,7 +220,7 @@ export default function LoginPage() {
                     type="button"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -250,7 +250,7 @@ export default function LoginPage() {
                 </button>
                 <label
                   htmlFor="remember-me-toggle"
-                  className="text-sm text-muted cursor-pointer select-none"
+                  className="text-sm text-slate-400 cursor-pointer select-none"
                   onClick={() => setForm((f) => ({ ...f, rememberMe: !f.rememberMe }))}
                 >
                   Stay signed in for 30 days
@@ -262,7 +262,7 @@ export default function LoginPage() {
                 id="login-submit-btn"
                 type="submit"
                 disabled={submitting}
-                className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-brand-blue to-brand-cyan text-foreground font-semibold text-sm tracking-wide shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2"
+                className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-brand-blue to-brand-cyan text-white font-semibold text-sm tracking-wide shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2"
               >
                 {submitting ? (
                   <>
@@ -282,10 +282,10 @@ export default function LoginPage() {
               transition={{ delay: 0.5 }}
               className="mt-6 pt-5 border-t border-white/5 text-center"
             >
-              <p className="text-xs text-foreground/20">
+              <p className="text-xs text-white/20">
                 VisageAI Enterprise &nbsp;·&nbsp; Admin access only
               </p>
-              <p className="text-xs text-foreground/15 mt-1">
+              <p className="text-xs text-white/15 mt-1">
                 Unauthorized access is strictly prohibited and monitored
               </p>
             </motion.div>
@@ -299,7 +299,7 @@ export default function LoginPage() {
             className="flex items-center justify-center gap-2 mt-4"
           >
             <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-            <span className="text-xs text-foreground/25">Secure connection established</span>
+            <span className="text-xs text-white/25">Secure connection established</span>
           </motion.div>
         </motion.div>
       </div>
