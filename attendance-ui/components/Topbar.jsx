@@ -124,7 +124,7 @@ export default function Topbar({ route }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute right-0 top-full mt-2 w-64 bg-glass-card backdrop-blur-xl border border-glass-border rounded-2xl shadow-2xl overflow-hidden z-50"
+                className="absolute right-0 top-full mt-2 w-64 bg-background/95 backdrop-blur-xl border border-glass-border rounded-2xl shadow-2xl overflow-hidden z-50"
               >
                 {/* User info header */}
                 <div className="px-4 py-4 border-b border-glass-border bg-brand-blue/5">
