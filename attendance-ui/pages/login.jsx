@@ -282,10 +282,10 @@ export default function LoginPage() {
               transition={{ delay: 0.5 }}
               className="mt-6 pt-5 border-t border-white/5 text-center"
             >
-              <p className="text-xs text-white/20">
+              <p className="text-xs text-white">
                 VisageAI Enterprise &nbsp;·&nbsp; Admin access only
               </p>
-              <p className="text-xs text-white/15 mt-1">
+              <p className="text-xs text-white mt-1">
                 Unauthorized access is strictly prohibited and monitored
               </p>
             </motion.div>
