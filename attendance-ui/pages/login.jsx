@@ -299,7 +299,7 @@ export default function LoginPage() {
             className="flex items-center justify-center gap-2 mt-4"
           >
             <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-            <span className="text-xs text-white/25">Secure connection established</span>
+            <span className="text-xs text-white">Secure connection established</span>
           </motion.div>
         </motion.div>
       </div>
