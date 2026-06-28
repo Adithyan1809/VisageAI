@@ -606,7 +606,7 @@ export default function Cameras() {
       {/* Page header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+          <h2 className="text-3xl font-bold text-foreground">
             Camera Fleet
           </h2>
           <p className="text-slate-400 mt-1 text-sm">Manage IP cameras across factory zones via RTSP / ONVIF.</p>

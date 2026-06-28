@@ -60,7 +60,7 @@ export default function Topbar({ route }) {
   return (
     <header className="flex items-center justify-between px-8 py-5 bg-glass-card/80 backdrop-blur-xl border-b border-glass-border shadow-sm sticky top-0 z-40 transition-all duration-300">
       <div className="flex items-center gap-4">
-        <h1 className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {title}
         </h1>
       </div>

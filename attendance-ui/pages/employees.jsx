@@ -157,7 +157,7 @@ export default function Employees() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Employee Directory</h2>
+          <h2 className="text-3xl font-bold text-foreground">Employee Directory</h2>
           <p className="text-muted mt-1">{employees.length} team members registered in the system.</p>
         </div>
         <div className="flex items-center gap-3">

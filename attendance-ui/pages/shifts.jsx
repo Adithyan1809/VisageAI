@@ -91,7 +91,7 @@ export default function Shifts() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-[1600px] mx-auto space-y-8">
       {/* Page Header */}
       <div>
-        <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Attendance &amp; Shifts</h2>
+        <h2 className="text-3xl font-bold text-foreground">Attendance &amp; Shifts</h2>
         <p className="text-muted mt-1">Manage attendance records, shift definitions, and employee shift assignments.</p>
       </div>
 

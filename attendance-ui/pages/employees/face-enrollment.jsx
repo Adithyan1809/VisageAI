@@ -334,7 +334,7 @@ export default function FaceEnrollment() {
     >
       <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Biometric Setup</h2>
+          <h2 className="text-3xl font-bold text-foreground">Biometric Setup</h2>
           <p className="text-muted mt-1">Secure facial registration for high-accuracy attendance.</p>
         </div>
       </div>

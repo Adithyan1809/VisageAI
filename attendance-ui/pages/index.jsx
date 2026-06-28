@@ -375,7 +375,7 @@ export default function Home() {
     >
       <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Live Telemetry</h2>
+          <h2 className="text-3xl font-bold text-foreground">Live Telemetry</h2>
           <p className="text-muted mt-1">Real-time attendance stream and system vitals.</p>
         </div>
         <button 
