@@ -81,8 +81,12 @@ export async function checkEnrollmentStatus() { return (await axios.get(`${BASE}
 export async function discoverOnvif() { return (await axios.get(`${ONVIF}/discover`, { timeout: 15000 })).data; }
 export async function validateOnvifCamera(payload) { return (await axios.post(`${ONVIF}/validate_camera`, payload, { timeout: 20000 })).data; }
 
-// End of helpers
+// ---------------- Auth ----------------
+export async function changePassword(payload) {
+  return (await axios.post(`${BASE}/api/auth/change-password`, payload)).data;
+}
 
+// End of helpers
 
 
 
