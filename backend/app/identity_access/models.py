@@ -62,6 +62,7 @@ class Employee(Base):
     id = Column(String, primary_key=True)
     user_id = Column(String, ForeignKey("users.id"))
     employee_code = Column(String)
+    name = Column(String)
     department_id = Column(String, ForeignKey("departments.id"))
     site_id = Column(String, ForeignKey("sites.id"))
     zone_id = Column(String, ForeignKey("zones.id"))

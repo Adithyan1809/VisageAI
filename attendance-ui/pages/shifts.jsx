@@ -19,9 +19,12 @@ const initialShifts = [];
 const initialEmployees = [];
 
 export default function Shifts() {
+  const { user, accessToken, loading: authLoading } = useAuth();
   const [tab, setTab] = useState(0);
 
-  
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" /></div>;
+  if (!user) return null;
+
   // Shift management state
   const [shifts, setShifts] = useState(initialShifts);
   const [employees, setEmployees] = useState(initialEmployees);
@@ -54,7 +57,7 @@ export default function Shifts() {
     // WebSocket: reuse employees websocket; any DB change triggers refetch
     function setupWs() {
       try {
-        const ws = new WebSocket(`${API_BASE}/api/employees/ws`);
+        const ws = new WebSocket(`${API_BASE.replace("http", "ws")}/api/employees/ws?token=${accessToken || ''}`);
         ws.onopen = () => {};
         ws.onmessage = () => {
           fetchAll();
@@ -76,16 +79,13 @@ export default function Shifts() {
       clearInterval(poll);
       try { wsRef.current && wsRef.current.close(); } catch (e) {}
     };
-  }, []);
+  }, [accessToken]);
   const tabs = [
     { label: "Attendance", icon: BarChart3 },
     { label: "Shift Definitions", icon: Clock },
     { label: "Shift Assignments", icon: Users },
   ];
 
-  const { user, loading: authLoading } = useAuth();
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" /></div>;
-  if (!user) return null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-[1600px] mx-auto space-y-8">

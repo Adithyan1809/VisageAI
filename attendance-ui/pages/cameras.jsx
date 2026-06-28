@@ -12,6 +12,7 @@ import {
   listZones, listNvr, testRtspConnection
 } from "../lib/api";
 import { toast } from "sonner";
+import { useAuth } from "../lib/auth";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const CAMERA_TYPES = ["IP Camera", "PTZ Camera", "Dome Camera", "Bullet Camera", "Fisheye Camera"];
@@ -524,6 +525,7 @@ function DeleteModal({ camera, onConfirm, onCancel }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Cameras() {
+  const { user, accessToken, loading: authLoading } = useAuth();
   const [cameras, setCameras]           = useState([]);
   const [zones, setZones]               = useState([]);
   const [nvrs, setNvrs]                 = useState([]);
@@ -533,6 +535,9 @@ export default function Cameras() {
   const [loading, setLoading]           = useState(true);
   const [filter, setFilter]             = useState("all"); // all | active | inactive
   const wsRef = useRef(null);
+
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" /></div>;
+  if (!user) return null;
 
   const fetchAll = useCallback(async () => {
     try {
@@ -552,7 +557,7 @@ export default function Cameras() {
     function setupWs() {
       try {
         const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
-        const ws = new WebSocket(`${API_BASE.replace("http", "ws")}/api/employees/ws`);
+        const ws = new WebSocket(`${API_BASE.replace("http", "ws")}/api/employees/ws?token=${accessToken || ''}`);
         ws.onmessage = () => { if (mounted) fetchAll(); };
         ws.onclose = () => { if (mounted) setTimeout(setupWs, 3000); };
         ws.onerror = () => ws.close();
@@ -567,7 +572,7 @@ export default function Cameras() {
       clearInterval(interval);
       wsRef.current?.close();
     };
-  }, [fetchAll]);
+  }, [fetchAll, accessToken]);
 
   function openAdd() { setEditCamera(null); setDrawerOpen(true); }
   function openEdit(cam) { setEditCamera(cam); setDrawerOpen(true); }

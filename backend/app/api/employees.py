@@ -12,8 +12,9 @@ import asyncio
 import threading
 import psycopg2
 import select
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket, WebSocketDisconnect, Query
 from app.config.database import engine, DATABASE_URL
+from app.auth.security import decode_access_token
 
 router = APIRouter()
 
@@ -39,7 +40,21 @@ async def broadcast_message(message: dict):
 
 # WebSocket endpoint (top-level so FastAPI registers it correctly)
 @router.websocket("/ws")
-async def employees_ws(websocket: WebSocket):
+async def employees_ws(websocket: WebSocket, token: str = Query(None)):
+    if not token:
+        await websocket.close(code=1008, reason="Missing token")
+        return
+        
+    try:
+        payload = decode_access_token(token)
+        username = payload.get("sub")
+        if not username:
+            await websocket.close(code=1008, reason="Invalid token")
+            return
+    except Exception:
+        await websocket.close(code=1008, reason="Invalid token")
+        return
+
     await websocket.accept()
     ws_connections.add(websocket)
     try:
