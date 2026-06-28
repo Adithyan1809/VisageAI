@@ -249,7 +249,7 @@ Open `http://localhost:3000/login` and sign in with your admin credentials.
 
 ## 👨‍💻 Author
 
-Built with ❤️ by **Adithyan P**.
+Built by **Adithyan P**.
 
 ---
 <div align="center">
