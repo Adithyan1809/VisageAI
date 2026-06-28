@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Papa from 'papaparse';
 import { listEmployees, deleteEmployee, listDepartments, createEmployee } from "../lib/api";
+import { useAuth } from '../lib/auth';
 
 function AvatarBubble({ name, size = "md" }) {
   const initials = (name || "?").split(" ").filter(Boolean).slice(0, 2).map(n => n[0]).join("").toUpperCase();
@@ -56,7 +57,7 @@ export default function Employees() {
         if (mounted) setEmployees(emps || []);
         if (mounted) setDepartments(Array.isArray(deps) ? deps : []);
       } catch (e) {
-        console.error("Failed to fetch employees or departments", e);
+        // ignore fetch failure
       } finally {
         if (mounted) setLoading(false);
       }
@@ -145,6 +146,10 @@ export default function Employees() {
   });
 
   const hasFilters = query || filterDept || filterRole || filterStatus;
+
+  const { user, loading: authLoading } = useAuth();
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" /></div>;
+  if (!user) return null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-[1600px] mx-auto space-y-8">

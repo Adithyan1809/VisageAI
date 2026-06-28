@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from "react";
 import { Line } from 'react-chartjs-2';
 import { Download, Users, Camera as CameraIcon, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../lib/auth';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -135,7 +136,7 @@ export default function Home() {
           }
         }
       } catch (e) {
-        console.warn('Failed to fetch recent attendance', e);
+        // ignore fetch failure
       }
     };
     fetchRecent();
@@ -199,14 +200,14 @@ export default function Home() {
             setTick((t) => t + 1);
           }
         } catch (e) {
-          console.warn('Invalid attendance event', e);
+          // ignore invalid event
         }
       };
-      es.onerror = (err) => {
-        console.warn('SSE error', err);
+      es.onerror = () => {
+        // ignore SSE errors
       };
     } catch (e) {
-      console.warn('EventSource not available', e);
+      // ignore EventSource not available
     }
 
     return () => {
@@ -361,6 +362,10 @@ export default function Home() {
   const [exportFormat, setExportFormat] = useState('csv');
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
+
+  const { user, loading: authLoading } = useAuth();
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" /></div>;
+  if (!user) return null;
 
   return (
     <motion.div 

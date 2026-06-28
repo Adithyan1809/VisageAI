@@ -6,6 +6,7 @@ import Button from "../components/Button";
 import { FileText, BarChart2, Download, Trash2, Clock, PlusCircle, Calendar } from "lucide-react";
 import { toast } from 'sonner';
 import EmptyState from '../components/EmptyState';
+import { useAuth } from '../lib/auth';
 
 function isoDate(d = null) {
   const dt = d ? new Date(d) : new Date();
@@ -89,7 +90,7 @@ export default function Reports() {
         const chart = Object.entries(byDept).map(([id, v]) => [v.name, v.present]);
         setChartData(chart);
       } catch (err) {
-        console.error('Failed to load reports data', err);
+        // ignore load failure
       }
     }
 
@@ -220,7 +221,6 @@ export default function Reports() {
           return;
         }
       } catch (err) {
-        console.error('Failed to generate report', err);
         toast.error('Failed to generate report: ' + (err.message || err));
       }
     })();
@@ -245,6 +245,10 @@ export default function Reports() {
   function clearRecent() { setRecentReports([]); }
 
   const _chartMax = Math.max(1, ...(chartData.map(x => x[1] || 0)));
+
+  const { user, loading: authLoading } = useAuth();
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" /></div>;
+  if (!user) return null;
 
   return (
     <>

@@ -1,8 +1,13 @@
 import { PageHeader } from "../components/PageHeader";
 import Card from "../components/Card";
 import Input from "../components/Input";
+import { useAuth } from '../lib/auth';
 
 export default function Preferences() {
+  const { user, loading: authLoading } = useAuth();
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" /></div>;
+  if (!user) return null;
+
   return (
     <>
       <PageHeader title="Preferences" subtitle="Modify system settings and global configurations" />

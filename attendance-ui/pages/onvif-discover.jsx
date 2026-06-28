@@ -5,6 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import { Wifi, AlertTriangle, Video } from "lucide-react";
+import { useAuth } from '../lib/auth';
 
 export default function OnvifDiscover() {
   const [devices, setDevices] = useState([]);
@@ -23,8 +24,8 @@ export default function OnvifDiscover() {
       const r = await discoverOnvif();
       setDevices(r.devices || []);
     } catch (e) {
-      console.error(e);
-      setDiscoverErr("Discovery failed. Is the ONVIF service running on http://localhost:5001 ?");
+      const onvifBase = process.env.NEXT_PUBLIC_ONVIF_BASE || 'http://localhost:5001';
+      setDiscoverErr(`Discovery failed. Is the ONVIF service running at ${onvifBase}?`);
       setDevices([]);
     } finally {
       setLoading(false);
@@ -56,12 +57,15 @@ export default function OnvifDiscover() {
       const r = await validateOnvifCamera(payload);
       setResult({ success: !!r.ok, data: r });
     } catch (err) {
-      console.error(err);
       setResult({ success: false, data: { message: err?.message || "Validation request failed" } });
     } finally {
       setValidating(false);
     }
   }
+
+  const { user, loading: authLoading } = useAuth();
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" /></div>;
+  if (!user) return null;
 
   return (
     <div>

@@ -122,8 +122,16 @@ class EnrollmentFaceDetector:
         """
         Detect faces and return cropped regions with metadata.
 
+        ROI nearest-person logic:
+            proximity_score = bbox_area × laplacian_variance
+        A person closer to the camera occupies more pixels AND is sharper
+        (higher Laplacian variance). The product of the two signals is a
+        robust depth proxy — the result list is sorted by it so index-0 is
+        always the nearest enrolled person.
+
         Returns:
-            List of dicts: {crop, full_image, face_row, confidence, blur_score}
+            List of dicts: {crop, full_image, face_row, confidence,
+                            blur_score, bbox_area, proximity_score, is_nearest}
         """
         if image is None or image.size == 0:
             return []
@@ -132,12 +140,18 @@ class EnrollmentFaceDetector:
             faces = self._app.get(image)
         except Exception as e:
             logger.warning(f"InsightFace detection failed: {e}")
+            blur = self._calculate_blur(image)
             return [{"crop": image, "full_image": image, "face_row": None,
-                     "confidence": 0.3, "blur_score": self._calculate_blur(image)}]
+                     "confidence": 0.3, "blur_score": blur,
+                     "bbox_area": image.shape[0] * image.shape[1],
+                     "proximity_score": blur, "is_nearest": True}]
 
         if not faces:
+            blur = self._calculate_blur(image)
             return [{"crop": image, "full_image": image, "face_row": None,
-                     "confidence": 0.3, "blur_score": self._calculate_blur(image)}]
+                     "confidence": 0.3, "blur_score": blur,
+                     "bbox_area": image.shape[0] * image.shape[1],
+                     "proximity_score": blur, "is_nearest": True}]
 
         results = []
         h, w = image.shape[:2]
@@ -161,33 +175,88 @@ class EnrollmentFaceDetector:
                 continue
 
             confidence = float(face.det_score) if hasattr(face, "det_score") else 0.9
+            blur_score = self._calculate_blur(crop)
+            bbox_area = fw * fh
+            # proximity_score = bbox_area × laplacian_variance
+            # Larger area = physically closer; higher laplacian = sharper/in-focus
+            proximity_score = bbox_area * blur_score
             results.append({
                 "crop": crop,
                 "full_image": image,
                 "face_row": None,   # InsightFace handles alignment internally
                 "confidence": confidence,
-                "blur_score": self._calculate_blur(crop),
+                "blur_score": blur_score,
+                "bbox_area": bbox_area,
+                "proximity_score": proximity_score,
+                "is_nearest": False,  # set after sorting
             })
 
         if not results:
+            blur = self._calculate_blur(image)
             return [{"crop": image, "full_image": image, "face_row": None,
-                     "confidence": 0.3, "blur_score": self._calculate_blur(image)}]
+                     "confidence": 0.3, "blur_score": blur,
+                     "bbox_area": image.shape[0] * image.shape[1],
+                     "proximity_score": blur, "is_nearest": True}]
 
-        results.sort(key=lambda r: r["confidence"], reverse=True)
+        # Sort by Laplacian-weighted proximity: largest AND sharpest face wins
+        results.sort(key=lambda r: r["proximity_score"], reverse=True)
+        results[0]["is_nearest"] = True
+
+        if len(results) > 1:
+            top = results[0]
+            logger.warning(
+                f"⚠️ Multiple faces detected ({len(results)}) — "
+                f"selecting nearest (area={top['bbox_area']}px², "
+                f"laplacian={top['blur_score']:.1f}, "
+                f"score={top['proximity_score']:.0f})"
+            )
+
         return results
 
     def get_bboxes(self, image: np.ndarray) -> list:
-        """Return raw bounding boxes [{x,y,width,height,confidence}] for the UI overlay."""
+        """
+        Return bounding boxes for the UI overlay, enriched with ROI proximity data.
+
+        Each box includes:
+            x, y, width, height  — pixel coordinates
+            confidence           — detection score
+            blur_score           — Laplacian variance of the face crop
+            proximity_score      — bbox_area × blur_score (depth proxy)
+            is_nearest           — True for the person closest to the camera
+        """
         try:
             faces = self._app.get(image)
+            h, w = image.shape[:2]
             boxes = []
             for face in faces:
                 x1, y1, x2, y2 = [int(v) for v in face.bbox]
+                x1, y1 = max(0, x1), max(0, y1)
+                x2, y2 = min(w, x2), min(h, y2)
                 confidence = float(face.det_score) if hasattr(face, "det_score") else 0.9
-                if confidence >= MIN_DETECTION_CONFIDENCE:
-                    boxes.append({"x": x1, "y": y1,
-                                  "width": x2 - x1, "height": y2 - y1,
-                                  "confidence": confidence})
+                if confidence < MIN_DETECTION_CONFIDENCE:
+                    continue
+                fw, fh = x2 - x1, y2 - y1
+                crop = image[y1:y2, x1:x2]
+                blur_score = self._calculate_blur(crop) if crop.size > 0 else 0.0
+                bbox_area = fw * fh
+                proximity_score = bbox_area * blur_score
+                boxes.append({
+                    "x": x1, "y": y1,
+                    "width": fw, "height": fh,
+                    "confidence": confidence,
+                    "blur_score": round(blur_score, 2),
+                    "proximity_score": round(proximity_score, 2),
+                    "is_nearest": False,  # set below
+                })
+
+            if boxes:
+                # Mark the highest proximity_score box as nearest
+                boxes.sort(key=lambda b: b["proximity_score"], reverse=True)
+                boxes[0]["is_nearest"] = True
+                if len(boxes) > 1:
+                    logger.debug(
+                        f"ROI: {len(boxes)} faces — nearest score={boxes[0]['proximity_score']:.0f}"
+                    )
             return boxes
         except Exception as e:
             logger.debug(f"get_bboxes failed: {e}")

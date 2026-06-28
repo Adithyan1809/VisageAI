@@ -144,6 +144,7 @@ async def main():
     # --------------------------- CAMERA REGISTRY + API ---------------------------
     registry = CameraRegistry()
     await registry.load_from_file(str(cameras_path))
+    await registry.start_db_sync()
     app = await make_registry_app(registry)
 
     # Secure middlewares
@@ -153,9 +154,10 @@ async def main():
 
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8081)
+    api_port = int(config.get("api_port", 8082))
+    site = web.TCPSite(runner, "0.0.0.0", api_port)
     await site.start()
-    logger.info("HTTP API running securely on port 8081")
+    logger.info(f"HTTP API running securely on port {api_port}")
 
     # --------------------------- FFMPEG INGESTOR ---------------------------
     manager = FFmpegIngestorManager(registry, frame_queue, ingest_width, ingest_height)
@@ -275,7 +277,7 @@ async def main():
     # --------------------------- STARTUP SUMMARY ---------------------------
     logger.info(f"""
 🟢 Pipeline Ready (Production)
-   HTTP API:        http://0.0.0.0:8081
+   HTTP API:        http://0.0.0.0:{api_port}
    Detectors:       {num_detectors}
    Trackers:        {num_trackers} ({tracker_type})
    Config:          {config_path}
@@ -289,6 +291,7 @@ Press Ctrl+C to stop.
     finally:
         logger.info("Shutting down services...")
 
+        await registry.stop_db_sync()
         await manager.stop_all()
 
         for _ in range(num_detectors):

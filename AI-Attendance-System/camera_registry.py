@@ -4,6 +4,7 @@ import logging
 from typing import Dict, Any, List
 
 from aiohttp import web
+from db_utils import get_db_manager
 
 logger = logging.getLogger("camera_registry")
 
@@ -41,6 +42,9 @@ class CameraRegistry:
         self._cameras: Dict[str, CameraConfig] = initial_cameras or {}
         self._listeners = []  # callbacks to call on add/remove/update
         self._lock = asyncio.Lock()
+        self._db = get_db_manager()
+        self._sync_task = None
+        self._stop_event = asyncio.Event()
 
     def register_listener(self, callback):
         """callback(camera_id, action, CameraConfig) called on add/remove"""
@@ -75,6 +79,96 @@ class CameraRegistry:
             logger.warning("No cameras.json found; continuing with empty registry (ONVIF only mode)")
         except Exception as e:
             logger.error(f"Failed to load cameras.json: {e}", exc_info=True)
+
+    async def start_db_sync(self):
+        """Start background task to sync cameras from PostgreSQL."""
+        if not self._sync_task:
+            self._stop_event.clear()
+            self._sync_task = asyncio.create_task(self._db_sync_loop())
+            logger.info("Started CameraRegistry DB sync task.")
+
+    async def stop_db_sync(self):
+        """Stop background DB sync task."""
+        self._stop_event.set()
+        if self._sync_task:
+            self._sync_task.cancel()
+            try:
+                await self._sync_task
+            except asyncio.CancelledError:
+                pass
+            self._sync_task = None
+            logger.info("Stopped CameraRegistry DB sync task.")
+
+    async def _db_sync_loop(self):
+        """Periodically fetches cameras from PostgreSQL and synchronizes with the registry."""
+        await self._db.create_pool()
+        
+        while not self._stop_event.is_set():
+            try:
+                async with self._db.pool.acquire() as conn:
+                    # Fetch all active cameras with an RTSP URL
+                    records = await conn.fetch(
+                        "SELECT id, rtsp_url, name, zone_id, status FROM cameras WHERE status = 'active' AND rtsp_url IS NOT NULL"
+                    )
+                
+                db_cameras = {str(rec['id']): rec for rec in records}
+                
+                async with self._lock:
+                    current_ids = set(self._cameras.keys())
+                db_ids = set(db_cameras.keys())
+                
+                # Add new cameras
+                for cid in db_ids - current_ids:
+                    rec = db_cameras[cid]
+                    cfg = CameraConfig(
+                        camera_id=cid,
+                        rtsp_url=rec['rtsp_url'],
+                        meta={"name": rec['name'], "location": rec['zone_id']}
+                    )
+                    # Use internal map directly then notify, to avoid double lock in add_camera
+                    async with self._lock:
+                        self._cameras[cid] = cfg
+                    await self.notify_listeners(cid, "add", cfg)
+                    logger.info("DB Sync: Added camera %s", cid)
+                
+                # Remove deleted or disabled cameras
+                for cid in current_ids - db_ids:
+                    # Don't remove purely local onvif cameras managed externally
+                    if not cid.startswith("onvif-"):
+                        async with self._lock:
+                            cfg = self._cameras.pop(cid, None)
+                        if cfg:
+                            await self.notify_listeners(cid, "remove", cfg)
+                            logger.info("DB Sync: Removed camera %s", cid)
+                
+                # Update existing cameras if RTSP changed
+                for cid in current_ids.intersection(db_ids):
+                    rec = db_cameras[cid]
+                    async with self._lock:
+                        cfg = self._cameras[cid]
+                        needs_update = False
+                        if cfg.rtsp_url != rec['rtsp_url']:
+                            cfg.rtsp_url = rec['rtsp_url']
+                            needs_update = True
+                        if cfg.meta.get("name") != rec['name']:
+                            cfg.meta["name"] = rec['name']
+                        if cfg.meta.get("location") != rec['zone_id']:
+                            cfg.meta["location"] = rec['zone_id']
+                            
+                    if needs_update:
+                        await self.notify_listeners(cid, "update", cfg)
+                        logger.info("DB Sync: Updated camera %s", cid)
+                        
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"DB Sync loop error: {e}", exc_info=True)
+            
+            # Wait before next poll
+            try:
+                await asyncio.wait_for(self._stop_event.wait(), timeout=10.0)
+            except asyncio.TimeoutError:
+                pass
 
     async def add_camera(self, cfg: CameraConfig):
         async with self._lock:

@@ -1,14 +1,16 @@
+import { cn } from "../lib/utils";
+
 export default function Select({ className = "", children, ...props }) {
   return (
     <select
       {...props}
-      className={`
-        w-full px-3 py-2 rounded-md border transition-colors
-        bg-white text-gray-900 border-gray-300
-        dark:bg-[#0f1113] dark:text-slate-200 dark:border-slate-700
-        focus:ring-2 focus:ring-blue-500 focus:outline-none
-        ${className}
-      `}
+      className={cn(
+        "w-full px-4 py-2.5 rounded-xl border transition-all duration-300 appearance-none",
+        "bg-glass-card backdrop-blur-md text-white border-glass-border",
+        "focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue focus:outline-none",
+        "hover:border-white/20",
+        className
+      )}
     >
       {children}
     </select>
