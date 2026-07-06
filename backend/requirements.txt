@@ -1,7 +1,7 @@
 # Core framework
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
-python-multipart==0.0.9
+python-multipart==0.0.31
 
 # Database
 sqlalchemy==1.4.52
@@ -11,9 +11,9 @@ asyncpg==0.29.0
 # AI / CV
 opencv-python-headless==4.9.0.80
 onnxruntime==1.17.3
-Pillow==10.3.0
+Pillow==12.2.0
 numpy==1.26.4
-scikit-learn==1.4.2
+scikit-learn==1.5.0
 scipy==1.13.0
 numba==0.59.1
 
@@ -22,17 +22,17 @@ redis==5.0.4
 # aioredis is EOL — redis[asyncio] (bundled with redis>=4.2) replaces it
 
 # HTTP / misc
-requests==2.31.0
+requests==2.33.0
 websockets==12.0
-zeep==4.2.1
+zeep==4.3.3
 
 # Config
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 pydantic==2.7.1
 pydantic-settings==2.2.1
 
 # Authentication
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]==3.4.0
 # passlib 1.7.4 supports bcrypt 4.x; earlier versions do not
 passlib==1.7.4
 bcrypt==4.0.1
