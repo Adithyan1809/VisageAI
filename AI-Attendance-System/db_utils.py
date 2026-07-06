@@ -409,7 +409,7 @@ class DatabaseManager:
 
             try:
                 await conn.execute(sql, event_id, canonical_emp_id, camera_id, zone_id, timestamp)
-                logger.info(f"✅ Attendance marked for {employee_name} ({canonical_emp_id}) in zone {zone_id} (event_id={event_id})")
+                logger.info(f"✅ Attendance marked for employee_id={canonical_emp_id} in zone {zone_id} (event_id={event_id})")
                 return True
             except Exception as e:
                 logger.error(f"❌ Failed to insert attendance for {employee_id}: {e}", exc_info=True)
