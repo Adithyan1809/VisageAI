@@ -1,6 +1,9 @@
+![VisageAI — Real-Time Face Recognition & Attendance System](VisageAI-Intelligent-Recognition-Banner.png)
+
 <div align="center">
-  
+
 # 👁️ VisageAI
+
 **Enterprise-Grade AI Face Recognition & Attendance System**
 
 <p align="center">
